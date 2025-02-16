@@ -1346,6 +1346,7 @@ new_tcr(natural vstack_size, natural tstack_size)
 #else
   TCR_AUX(tcr)->shutdown_count = 1;
 #endif
+  tcr->handshake = 0;
   return tcr;
 }
 

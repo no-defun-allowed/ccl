@@ -3470,6 +3470,8 @@
 
    (def-x86-opcode uuo-watch-trap ()
      #xcdce nil nil)
+   (def-x86-opcode uuo-safepoint-trap ()
+     #xcdcf nil nil)
    
    (def-x86-opcode uuo-error-reg-not-tag ((:reg :insert-opcode-reg4) (:imm8 :insert-imm8))
      #xcdd0 nil 0)

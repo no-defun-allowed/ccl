@@ -331,6 +331,7 @@ typedef struct tcr {
   void *pending_io_info;
   void *io_datum;
   void *nfp;
+  natural handshake;
 } TCR;
 
 #define t_offset (t_value-nil_value)

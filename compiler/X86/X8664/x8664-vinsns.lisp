@@ -700,6 +700,16 @@
   ((:pred > intval #xffffffff)
    (movq (:$q (:apply logand #xffffffffffffffff intval)) (:%q dest))))
 
+;; The handshake word has two interesting bits:
+;; bit 0 is set when we need to stop a thread, and
+;; bit 1 is set when the thread has given up its stack/context
+;; for a foreign call.
+(define-x8664-vinsn safepoint-check (() ())
+  (cmpl (:$b 0) (:rcontext x8664::tcr.handshake))
+  (je :okay)
+  (uuo-safepoint-trap)
+  :okay)
+
 (define-x8664-vinsn trap-unless-bit (()
                                      ((value :lisp)))
   :resume

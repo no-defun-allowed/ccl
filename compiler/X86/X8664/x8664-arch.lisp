@@ -750,6 +750,7 @@
   pending-io-info
   io-datum
   nfp
+  handshake
 )
 
 (defconstant tcr.single-float-convert.value (+ 4 tcr.single-float-convert))

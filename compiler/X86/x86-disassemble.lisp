@@ -2382,6 +2382,7 @@
                             (#xc9 "uuo-error-call-macro-or-special-operator")
                             (#xca (setq stop nil) "uuo-error-debug-trap")
                             (#xcd (setq stop nil) "uuo-error-debug-trap-with-string")
+                            (#xcf (setq stop nil) "uuo-safepoint-trap")
                             (t "unknown-UUO"))))))
           ((< intop #xe0)
            (setf (x86-di-mnemonic instruction)

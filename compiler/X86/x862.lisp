@@ -783,7 +783,8 @@
              (result-reg (make-wired-lreg *x862-result-reg*)))
 	(setq bits (x862-toplevel-form vinsns result-reg
 				       $backend-return (afunc-acode afunc)))
-	(optimize-vinsns vinsns)            
+	(optimize-vinsns vinsns)
+       (x862-insert-safepoints vinsns)
         (do* ((constants *x862-constant-alist* (cdr constants)))
              ((null constants))
           (let* ((imm (caar constants)))
@@ -6966,7 +6967,17 @@
 		 (x86::x86-instruction-imm instruction)
 		 immediate-operand)))))
     (x86-generate-instruction-code frag-list instruction)))
-          
+
+(defvar *insert-safepoints* t)
+(defun x862-insert-safepoints (vinsns)
+  (when *insert-safepoints*
+    (with-x86-local-vinsn-macros (vinsns)
+      (do-dll-nodes (v vinsns)
+        (when (%vinsn-label-p v)
+          ;; XXX: this is a garbage way to insert a vinsn
+          (let ((safepoint (! safepoint-check)))
+            (remove-dll-node safepoint)
+            (insert-dll-node-after safepoint v)))))))
     
 (defun x862-expand-vinsns (header frag-list instruction &optional uuo-frag-list)
   (let* ((immediate-operand (x86::make-x86-immediate-operand)))
