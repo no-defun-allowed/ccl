@@ -1253,6 +1253,12 @@ handle_exception(int signum, siginfo_t *info, ExceptionInformation  *context, TC
             lisp_Debugger(context, info, debug_entry_dbg, false, msg);
           }
 	  return true;
+        case UUO_SAFEPOINT_TRAP:
+          xpPC(context) += 2;
+          fprintf(stderr, "safepoint %d!!\n", tcr->handshake);
+          tcr->handshake = 0;
+          plbt(context);
+          return true;
           
         default:
           return handle_error(tcr, context);

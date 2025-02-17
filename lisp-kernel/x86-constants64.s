@@ -787,6 +787,7 @@ TCR_BIAS = 0
          _node(pending_io_info)
          _node(io_datum)
          _node(nfp)
+         _node(handshake)
 	_ends
 
         _struct(win64_context,0)
