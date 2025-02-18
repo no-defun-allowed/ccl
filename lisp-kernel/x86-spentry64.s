@@ -4190,17 +4190,33 @@ _endsubp(builtin_aref1)
 
 _spentry(release_stack)
         __(movq $TCR_STATE_FOREIGN,rcontext(tcr.valence))
-        /*__(movq $2, rcontext(tcr.handshake))*/
+        __(push %rax)
+        __(push %rbx)
         __(movq $0, %rax)
         __(movq $2, %rbx)
         __(lock cmpxchg %rbx, rcontext(tcr.handshake))
+        __(jnz local_label(release_stack_fail))
+        __(pop %rbx)
+        __(pop %rax)
         __(ret)
+local_label(release_stack_fail):
+        __(ud2)
 _endsubp(release_stack)
 
 _spentry(reacquire_stack)
         __(movq $TCR_STATE_LISP,rcontext(tcr.valence))
-        __(movq $0, rcontext(tcr.handshake))
+        __(push %rax)
+        __(push %rbx)
+        __(movq $2, %rax)
+        __(movq $0, %rbx)
+        __(lock cmpxchg %rbx, rcontext(tcr.handshake))
+        /* XXX: Somehow this test spuriously fails on startup. */
+        /* __(jnz local_label(reacquire_stack_fail)) */
+        __(pop %rbx)
+        __(pop %rax)
         __(ret)
+local_label(reacquire_stack_fail):
+        __(ud2)
 _endsubp(reacquire_stack)
         
 /* Arg_z is either a MACPTR containing the function address or a boxed fixnum.  */
