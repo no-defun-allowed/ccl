@@ -5472,7 +5472,12 @@ v idx-reg constidx val-reg (arm2-unboxed-reg-for-aset seg type-keyword val-reg s
                     (progn
                       (arm2-lri seg arm::imm0 vdiff)
                       (! slide-values))
-                    (! adjust-vsp vdiff)))))
+                    (progn
+                      (loop with chunk-size = 256
+                            while (> vdiff chunk-size)
+                            do (! adjust-vsp chunk-size)
+                               (decf vdiff chunk-size))
+                      (! adjust-vsp vdiff))))))
             (setq numnlispareas 0)
             (while (%i> lastcatch dest)
               (let ((reason (aref *arm2-undo-because* (setq lastcatch (%i- lastcatch 1)))))
