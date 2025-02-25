@@ -46,14 +46,18 @@
              (/ -0d0))
 	(ccl:set-fpu-mode :division-by-zero division-by-zero))))
 
-(defconstant double-float-nan
-  #.(let ((invalid (get-fpu-mode :invalid)))
-      (declare (notinline +))
-      (unwind-protect
-	   (progn
-	     (set-fpu-mode :invalid nil)
-	     (+ double-float-positive-infinity double-float-negative-infinity))
-	(set-fpu-mode :invalid invalid))))
+;; DEFCONSTANT calls EQUALP calls = which gets confused comparing NaNs.
+(let ((invalid (get-fpu-mode :invalid)))
+  (set-fpu-mode :invalid nil)
+  (defconstant double-float-nan
+    #.(let ((invalid (get-fpu-mode :invalid)))
+        (declare (notinline +))
+        (unwind-protect
+	     (progn
+	       (set-fpu-mode :invalid nil)
+	       (+ double-float-positive-infinity double-float-negative-infinity))
+	  (set-fpu-mode :invalid invalid))))
+  (set-fpu-mode :invalid invalid))
 
 (defun parse-float (str len off)  
   ; we cant assume this really is a float but dont call with eg s1 or e1
