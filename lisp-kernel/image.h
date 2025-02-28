@@ -100,4 +100,4 @@ set_nil(LispObj);
 
 
 
-#define NUM_IMAGE_SECTIONS 5    /* used to be 3 */
+#define NUM_IMAGE_SECTIONS 6    /* used to be 3 */

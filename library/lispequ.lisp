@@ -1273,6 +1273,7 @@
   managed-static                        ; growable static area
   static                                ; static data in application
   dynamic                               ; dynmaic (heap) data in application
+  code                                  ; non-moving code-only area
 )
 
 ;;; areas are sorted such that (in the "succ" direction) codes are >=.

@@ -335,9 +335,16 @@ load_image_section(int fd, openmcl_image_section_header *sect)
     */
     break;
 
+  case AREA_CODE:
+    if (mem_size != 0)
+      Bug(NULL, "not exactly expecting to have used a code area");
+    a = new_area(0, 0, AREA_CODE);
+    sect->area = a;
+    code_area = a;
+    break;
+
   default:
-    return;
-    
+    Bug(NULL, "Unknown area code %d", sect->code);
   }
   LSEEK(fd, pos+advance, SEEK_SET);
 }
@@ -607,6 +614,7 @@ save_application_internal(unsigned fd, Boolean egc_was_enabled)
   areas[2] = active_dynamic_area;
   areas[3] = managed_static_area;
   areas[4] = static_cons_area;
+  areas[5] = code_area;
   for (i = 0; i < NUM_IMAGE_SECTIONS; i++) {
     a = areas[i];
     sections[i].code = a->code;

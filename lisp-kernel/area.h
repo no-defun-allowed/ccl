@@ -34,7 +34,8 @@ typedef enum {
   AREA_MANAGED_STATIC = 7<<fixnumshift, /* A resizable static area */
   AREA_STATIC = 8<<fixnumshift, /* A  static section: contains
                                  roots, but not GCed */
-  AREA_DYNAMIC = 9<<fixnumshift /* A heap. Only one such area is "the heap."*/
+  AREA_DYNAMIC = 9<<fixnumshift, /* A heap. Only one such area is "the heap."*/
+  AREA_CODE = 10<<fixnumshift /* non-moving, code only */
 } area_code;
 
 typedef struct area {

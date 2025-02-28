@@ -400,7 +400,8 @@ area
   *g1_area=NULL,
   *managed_static_area=NULL,
   *static_cons_area=NULL,
-  *readonly_area=NULL;
+  *readonly_area=NULL,
+  *code_area=NULL;
 
 area *all_areas=NULL;
 int cache_block_size=32;

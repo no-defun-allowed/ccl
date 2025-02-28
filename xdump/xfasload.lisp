@@ -82,6 +82,8 @@
 (defparameter *xload-managed-static-space-size* 0)
 (defparameter *xload-static-cons-space-address* nil)
 (defparameter *xload-static-cons-space-size* 0)
+(defparameter *xload-code-space-address* nil)
+(defparameter *xload-code-space-size* 0)
 
 (defstruct backend-xload-info
   name
@@ -112,7 +114,8 @@
           (+ *xload-image-base-address*
              *xload-purespace-reserve*))
     (setq *xload-managed-static-space-address* *xload-dynamic-space-address*
-          *xload-static-cons-space-address* *xload-dynamic-space-address*)
+          *xload-static-cons-space-address* *xload-dynamic-space-address*
+          *xload-code-space-address* *xload-dynamic-space-address*)
     (setq *xload-static-space-address*
           (backend-xload-info-static-space-address
            *xload-target-backend*))
@@ -347,6 +350,7 @@
 (defparameter *xload-static-space* nil)
 (defparameter *xload-managed-static-space* nil)
 (defparameter *xload-static-cons-space* nil)
+(defparameter *xload-code-space* nil)
 (defparameter *xload-symbols* nil)
 (defparameter *xload-symbol-addresses* nil)
 (defparameter *xload-package-alist* nil)         ; maps real package to clone
@@ -1032,7 +1036,7 @@
 	 (*xload-static-space* (init-xload-space *xload-static-space-address* *xload-static-space-size* area-static))
          (*xload-managed-static-space* (init-xload-space *xload-managed-static-space-address* *xload-managed-static-space-size* area-managed-static))
          (*xload-static-cons-space* (init-xload-space *xload-static-cons-space-address* *xload-static-cons-space-size* area-static-cons))
-						 
+	 (*xload-code-space* (init-xload-space *xload-code-space-address* *xload-code-space-size* area-code))
          (*xload-package-alist* (xload-clone-packages (xload-initial-packages)))
          (*xload-cold-load-functions* nil)
          (*xload-cold-load-documentation* nil)
@@ -1156,7 +1160,8 @@
 			  *xload-readonly-space*
 			  *xload-dynamic-space*
                           *xload-managed-static-space*
-                          *xload-static-cons-space*)))
+                          *xload-static-cons-space*
+                          *xload-code-space*)))
 		    
 
 
