@@ -208,6 +208,7 @@ void
 load_image_section(int fd, openmcl_image_section_header *sect)
 {
   extern area* allocate_dynamic_area(natural);
+  extern LogicalAddress ReserveMemory(natural);
   off_t
     pos = seek_to_next_page(fd), advance;
   natural
@@ -337,8 +338,13 @@ load_image_section(int fd, openmcl_image_section_header *sect)
 
   case AREA_CODE:
     if (mem_size != 0)
-      Bug(NULL, "not exactly expecting to have used a code area");
-    a = new_area(0, 0, AREA_CODE);
+      fprintf(stderr, "not exactly expecting to have used a code area, ignoring it\n");
+#define CODE_AREA_SIZE (1 << 30UL)
+    addr = ReserveMemory(CODE_AREA_SIZE);
+    if (!addr) Bug(NULL, "failed to allocate %ld bytes for code area", CODE_AREA_SIZE);
+    UnProtectMemory(addr, CODE_AREA_SIZE);
+    fprintf(stderr, "allocated code at %p\n", addr);
+    a = new_area(addr, addr + CODE_AREA_SIZE, AREA_CODE);
     sect->area = a;
     code_area = a;
     break;
@@ -655,14 +661,16 @@ save_application_internal(unsigned fd, Boolean egc_was_enabled)
 
   prepare_to_write_static_space(egc_was_enabled);
 
-
-
   for (i = 0; i < NUM_IMAGE_SECTIONS; i++) {
     natural n;
     a = areas[i];
+    fprintf(stderr, "area %d is %p\n", i, a);
     seek_to_next_page(fd);
     n = sections[i].memory_size;
+    fprintf(stderr, "writing from %p %d\n", a->low, n);
     if (writebuf(fd, a->low, n)) {
+        fprintf(stderr, "writebuf of area #%d failed\n", i);
+        perror("writebuf");
 	return errno;
     }
     if (n &&  ((sections[i].code) == AREA_MANAGED_STATIC)) {
@@ -684,6 +692,7 @@ save_application_internal(unsigned fd, Boolean egc_was_enabled)
   fh.section_data_offset_low = (unsigned)section_data_delta;
   err =  write_file_and_section_headers(fd, &fh, sections, NUM_IMAGE_SECTIONS, &header_pos);
   if (err) {
+    fprintf(stderr, "write_file_and_section_headers failed\n");
     return err;
   }  
 #endif

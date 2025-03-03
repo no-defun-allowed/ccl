@@ -385,7 +385,11 @@ of sense to be turning the EGC on and off from multiple threads ..."
   (uuo-gc-trap)
   (single-value-return))
 
-
+(defx86lapfunction allocate-in-code-area ((size arg_z))
+  (check-nargs 1)
+  (movq ($ arch::gc-trap-function-allocate-in-code-area) (% imm0))
+  (uuo-gc-trap)
+  (single-value-return))
 
 
 (defx86lapfunction %configure-egc ((e0size arg_x)

@@ -139,6 +139,7 @@ void report_paging_info_delta(FILE*, paging_info *, paging_info *);
 #define GC_TRAP_FUNCTION_IMPURIFY 2
 #define GC_TRAP_FUNCTION_FLASH_FREEZE 4
 #define GC_TRAP_FUNCTION_SAVE_APPLICATION 8
+#define GC_TRAP_FUNCTION_ALLOCATE_IN_CODE_AREA 9
 
 #define GC_TRAP_FUNCTION_GET_LISP_HEAP_THRESHOLD 16
 #define GC_TRAP_FUNCTION_SET_LISP_HEAP_THRESHOLD 17
@@ -229,6 +230,7 @@ signed_natural impurify(TCR *, signed_natural);
 signed_natural gc_like_from_xp(ExceptionInformation *, signed_natural(*fun)(TCR *, signed_natural), signed_natural);
 Boolean mark_ephemeral_root(LispObj);
 
+LispObj allocate_in_code_area(natural);
 
 typedef enum {
   xmacptr_flag_none = 0,        /* Maybe already disposed by Lisp */

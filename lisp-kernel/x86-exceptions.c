@@ -231,6 +231,13 @@ handle_gc_trap(ExceptionInformation *xp, TCR *tcr)
     xpGPR(xp,Iarg_z) = lisp_nil + (egc_was_enabled ? t_offset : 0);
     break;
 
+    /* Why does uncommenting *this* cause the error printer to barf in SAVE-APPLICATION? */
+#if 0
+  case GC_TRAP_FUNCTION_ALLOCATE_IN_CODE_AREA:
+    xpGPR(xp,Iarg_z) = allocate_in_code_area(unbox_fixnum(arg));
+    break;
+#endif
+
   case GC_TRAP_FUNCTION_CONFIGURE_EGC:
 #ifdef X8664
     a->threshold = unbox_fixnum(xpGPR(xp, Iarg_x));
