@@ -507,7 +507,7 @@ new_area(BytePtr lowaddr, BytePtr highaddr, area_code code)
     natural ndnodes = area_dnode(highaddr, lowaddr);
     a->low = lowaddr;
     a->high = highaddr;
-    a->active = (code == AREA_DYNAMIC) ? lowaddr : highaddr;
+    a->active = (code == AREA_DYNAMIC || code == AREA_CODE) ? lowaddr : highaddr;
     a->code = code;
     a->ndnodes = ndnodes;
     /* Caller must allocate markbits when allocating heap ! */
