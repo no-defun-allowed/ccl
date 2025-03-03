@@ -345,6 +345,7 @@ load_image_section(int fd, openmcl_image_section_header *sect)
     UnProtectMemory(addr, CODE_AREA_SIZE);
     fprintf(stderr, "allocated code at %p\n", addr);
     a = new_area(addr, addr + CODE_AREA_SIZE, AREA_CODE);
+    a->active = a->low;
     sect->area = a;
     code_area = a;
     break;

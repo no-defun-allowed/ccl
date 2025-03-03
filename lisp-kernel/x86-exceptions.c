@@ -233,7 +233,7 @@ handle_gc_trap(ExceptionInformation *xp, TCR *tcr)
 
     /* Why does uncommenting *this* cause the error printer to barf in SAVE-APPLICATION? */
   case GC_TRAP_FUNCTION_ALLOCATE_IN_CODE_AREA:
-    xpGPR(xp,Iarg_z) = allocate_in_code_area(unbox_fixnum(arg));
+    xpGPR(xp,Iarg_z) = allocate_in_code_area(unbox_fixnum(xpGPR(xp, Iarg_z)));
     break;
 
   case GC_TRAP_FUNCTION_CONFIGURE_EGC:

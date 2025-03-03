@@ -2052,6 +2052,7 @@ new_heap_segment(ExceptionInformation *xp, natural need, Boolean extend, TCR *tc
 }
 
 LispObj allocate_in_code_area(natural bytes_needed) {
+  fprintf(stderr, "alloc %ld\n", bytes_needed);
   char *last = code_area->active;
   if (code_area->active + bytes_needed > code_area->high)
     Bug(NULL, "Out of code area");
