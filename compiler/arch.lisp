@@ -355,7 +355,6 @@
 (defconstant gc-trap-function-impurify 2)
 (defconstant gc-trap-function-flash-freeze 4)
 (defconstant gc-trap-function-save-application 8)
-(defconstant gc-trap-function-allocate-in-code-area 9)
 (defconstant gc-trap-function-get-lisp-heap-threshold 16)
 (defconstant gc-trap-function-set-lisp-heap-threshold 17)
 (defconstant gc-trap-function-use-lisp-heap-threshold 18)
@@ -365,6 +364,7 @@
 (defconstant gc-trap-function-allocation-control 22)
 (defconstant gc-trap-function-egc-control 32)
 (defconstant gc-trap-function-configure-egc 64)
+(defconstant gc-trap-function-allocate-in-code-area 96)
 (defconstant gc-trap-function-freeze 129)
 (defconstant gc-trap-function-thaw 130)
 
