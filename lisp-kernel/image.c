@@ -340,6 +340,7 @@ load_image_section(int fd, openmcl_image_section_header *sect)
 #define CODE_AREA_SIZE (1 << 30UL)
     addr = ReserveMemory(CODE_AREA_SIZE);
     if (!addr) Bug(NULL, "failed to allocate %ld bytes for code area", CODE_AREA_SIZE);
+    /* No need to relocate, code vectors are flat */
     if (mem_size)
       if (!MapFile(addr, pos, align_to_power_of_2(mem_size, log2_page_size), MEMPROTECT_RWX, fd))
         Bug(NULL, "failed to map in code space");
