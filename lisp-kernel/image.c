@@ -337,14 +337,16 @@ load_image_section(int fd, openmcl_image_section_header *sect)
     break;
 
   case AREA_CODE:
-    if (mem_size != 0)
-      fprintf(stderr, "not exactly expecting to have used a code area, ignoring it\n");
 #define CODE_AREA_SIZE (1 << 30UL)
     addr = ReserveMemory(CODE_AREA_SIZE);
     if (!addr) Bug(NULL, "failed to allocate %ld bytes for code area", CODE_AREA_SIZE);
+    if (mem_size)
+      if (!MapFile(addr, pos, align_to_power_of_2(mem_size, log2_page_size), MEMPROTECT_RWX, fd))
+        Bug(NULL, "failed to map in code space");
     UnProtectMemory(addr, CODE_AREA_SIZE);
     fprintf(stderr, "allocated code at %p\n", addr);
     a = new_area(addr, addr + CODE_AREA_SIZE, AREA_CODE);
+    a->active = a->low + mem_size;
     sect->area = a;
     code_area = a;
     break;
