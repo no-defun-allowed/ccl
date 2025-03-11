@@ -909,6 +909,7 @@
     (:bit-vector . ,subtag-bit-vector )
     (:signed-8-bit-vector . ,subtag-s8-vector )
     (:unsigned-8-bit-vector . ,subtag-u8-vector )
+    (:code-vector . ,subtag-u8-vector ) ; real
     (:signed-16-bit-vector . ,subtag-s16-vector )
     (:unsigned-16-bit-vector . ,subtag-u16-vector )
     (:signed-32-bit-vector . ,subtag-s32-vector )

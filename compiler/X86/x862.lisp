@@ -3699,11 +3699,11 @@
                  (vsize (+ (length inherited-vars)
                            (target-arch-case
                             (:x8632 7)
-                            (:x8664 5)) ; %closure-code%, afunc
+                            (:x8664 2)) ; %closure-code%, afunc
                            1)))         ; lfun-bits
             (declare (list inherited-vars))
             (let* ((cell (target-arch-case (:x8632 6)
-                                           (:x8664 4))))
+                                           (:x8664 1))))
               (declare (fixnum cell))
               (if downward-p
                 (progn

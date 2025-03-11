@@ -1469,7 +1469,7 @@
             (incf target-offset (frag-output-bytes frag code-vector target-offset)))
           constants-vector)))))
 
-#+x86-target
+#+x8632-target
 (defun create-x86-function (name frag-list constants bits debug-info)
   (unless name (setq bits (logior bits (ash -1 $lfbits-noname-bit))))
   (let* ((code-bytes (let* ((nbytes 0))
@@ -1483,7 +1483,6 @@
     (when debug-info (incf nconstants))
     (incf nconstants)
 
-    #+x8632-target
     (let* ((ncode (- code-words nconstants)))
       (when (>= ncode #x8000)
         (if (>= nconstants #x8000)
@@ -1505,8 +1504,37 @@
         (setf (uvref function-vector (decf last)) debug-info))
       (dolist (c constants)
         (setf (uvref function-vector (decf last)) (car c)))
-      #+x8632-target
       (%update-self-references function-vector)
+      (function-vector-to-function function-vector))))
+
+#+x8664-target
+(defun create-x86-function (name frag-list constants bits debug-info)
+  (unless name (setq bits (logior bits (ash -1 $lfbits-noname-bit))))
+  (let* ((code-bytes (let* ((nbytes 0))
+                       (do-dll-nodes (frag frag-list nbytes)
+                         (incf nbytes (frag-length frag)))))
+	 (nconstants (length constants))
+         (code-vector (allocate-in-code-area code-bytes)))
+    (declare (fixnum code-bytes))
+    (when name (incf nconstants))
+    (when debug-info (incf nconstants))
+    (incf nconstants)
+    
+    (let* ((target-offset 0))
+      (declare (fixnum target-offset))
+      (do-dll-nodes (frag frag-list)
+        (incf target-offset (frag-output-bytes frag code-vector target-offset))))
+    (let* ((function-vector (allocate-typed-vector :function (1+ nconstants)))
+           (last (1- (uvsize function-vector))))
+      (declare (fixnum last))
+      (setf (uvref function-vector 0) (code-vector-entry-point code-vector))
+      (setf (uvref function-vector last) bits)
+      (when name
+        (setf (uvref function-vector (decf last)) name))
+      (when debug-info
+        (setf (uvref function-vector (decf last)) debug-info))
+      (dolist (c constants)
+        (setf (uvref function-vector (decf last)) (car c)))
       (function-vector-to-function function-vector))))
 
 (defun %define-x86-lap-function (name forms &optional (bits 0))

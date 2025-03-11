@@ -2428,20 +2428,14 @@
   (:anchored-uuo-section :resume)
   :bad
   (:anchored-uuo (uuo-error-not-callable)))
-                             
 
 
-;;; Magic numbers in here include the address of .SPcall-closure.
+
 (define-x8664-vinsn init-nclosure (()
                                    ((closure :lisp))
                                    ((imm0 :u64)))
-  (movq (:$q #x24fffffffff92d8d) (:%q imm0))
-  (movb (:$b 4) (:@ x8664::misc-data-offset (:%q closure))) ; code word count
-  (movb (:$b #x4c) (:@ (+ x8664::misc-data-offset 7) (:%q closure))) ; 1st byte of lea
-  (movq (:%q imm0) (:@ (+ x8664::misc-data-offset 8) (:%q closure))) ; rest of lea, start of jmp
-  (movl (:$l #x01516825) (:@ (+ x8664::misc-data-offset 16) (:%q closure)))
-  (movb (:$b x8664::function-boundary-marker) (:@ (+ x8664::misc-data-offset 24)  (:%q closure))))
-
+  (movq (:$q .SPcall-closure) (:%q imm0))
+  (movq (:%q imm0) (:@ (+ x8664::misc-data-offset 0) (:%q closure))))
 
 (define-x8664-vinsn finalize-closure (((closure :lisp))
                                       ((closure :lisp)))
