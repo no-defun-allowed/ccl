@@ -132,21 +132,12 @@
     (%function-vector-to-function newv)))
 
 (defun replace-function-code (target proto)
-  (let* ((target-words (%function-code-words target))
-         (proto-words (%function-code-words proto)))
-    (declare (fixnum target-words proto-words))
-    (if (= target-words proto-words)
-      (progn
-        (%copy-ivector-to-ivector (%function-to-function-vector proto)
-                                  0
-                                  (%function-to-function-vector target)
-                                  0
-                                  (the fixnum (ash target-words
-                                                   target::word-shift)))
-        target)
-      (error "Code size mismatch: target = ~s, proto = ~s"
-             target-words proto-words))))
-         
+  (if (typep target 'function)
+      (if (typep proto 'function)
+          (setf (uvref target 0) (uvref proto 0))
+          (report-bad-arg proto 'function))
+      (report-bad-arg target 'function)))
+
 
 (defx86lapfunction %get-kernel-global-from-offset ((offset arg_z))
   (check-nargs 1)

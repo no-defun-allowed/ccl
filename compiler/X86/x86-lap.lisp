@@ -209,7 +209,7 @@
 ;;; dependent instructions.
 
 (defvar *x86-lap-labels* ())
-(defvar *x86-lap-constants* ())
+(defvar *x86-lap-constants*)
 (defparameter *x86-lap-entry-offset* nil)
 (defparameter *x86-lap-fixed-code-words* nil)
 (defvar *x86-lap-lfun-bits* 0)
@@ -553,13 +553,8 @@
 
 
 (defun ensure-x86-lap-constant-label (val)
-  (or (cdr (assoc val *x86-lap-constants*
-                  :test #'eq))
-      (let* ((label (make-x86-lap-label
-                     (gensym)))
-             (pair (cons val label)))
-        (push pair *x86-lap-constants*)
-        label)))
+  (or (position val *x86-lap-constants* :test #'eq)
+      (vector-push-extend val *x86-lap-constants*)))
 
 (defun parse-x86-lap-expression (form)
   (if (typep form 'x86-lap-expression)
@@ -1546,7 +1541,7 @@
 
 (defun %define-x8664-lap-function (name forms &optional (bits 0))
   (let* ((*x86-lap-labels* ())
-         (*x86-lap-constants* ())
+         (*x86-lap-constants* (make-array 64 :adjustable t :fill-pointer 0))
 	 (*x86-lap-entry-offset* x8664::fulltag-function)
          (*x86-lap-fixed-code-words* nil)
          (*x86-lap-lfun-bits* bits)
@@ -1576,11 +1571,6 @@
       (x86-lap-directive frag-list :org (ash *x86-lap-fixed-code-words* 3)))
     (x86-lap-directive frag-list :quad x8664::function-boundary-marker)
     (emit-x86-lap-label frag-list end-code-tag)
-    (dolist (c (reverse *x86-lap-constants*))
-      (emit-x86-lap-label frag-list (x86-lap-label-name (cdr c)))
-      (x86-lap-directive frag-list :quad 0))
-    (when name
-      (x86-lap-directive frag-list :quad 0))
     ;; room for lfun-bits
     (x86-lap-directive frag-list :quad 0)
     (relax-frag-list frag-list)
