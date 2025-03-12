@@ -643,23 +643,22 @@
   (cmpq (:$l (:apply target-t-value)) (:%q arg0)))
 
 (defun function-constant-offset (n)
-  ;; + 2 to skip the header and entrypoint.
-  (- (ash (+ 2 n) x8664::word-shift) x8664::fulltag-function))
+  ;; 1+ to skip the entrypoint.
+  (+ x8664::misc-function-offset (ash (1+ n) x8664::word-shift)))
 
 (define-x8664-vinsn (ref-constant :constant-ref) (((dest :lisp))
                                                   ((index :u32const)))
-  (movq (:@ (:%q x8664::fn) (:apply function-constant-offset index)) (:%q dest)))
+  (movq (:@ (:apply function-constant-offset index) (:%q x8664::fn)) (:%q dest)))
 
 (define-x8664-vinsn compare-constant-to-register (()
                                                   ((index :u32const)
                                                    (reg :lisp)))
-  (cmpq (:@ (:%q x8664::fn) (:apply function-constant-offset index)) (:%q reg)))
+  (cmpq (:@ (:apply function-constant-offset index) (:%q x8664::fn)) (:%q reg)))
 
 
 (define-x8664-vinsn (vpush-constant :push :node :vsp) (()
                                                        ((index :u32const)))
-  (pushq (:@ (:%q x8664::fn) (:apply function-constant-offset index))))
-
+  (pushq (:@ (:apply function-constant-offset index) (:%q x8664::fn))))
   
 (define-x8664-vinsn (jump :jump)
     (()
@@ -4366,7 +4365,7 @@
   (pushq (:@ (:%q tlb-pointer) (:%q idx)))
   (pushq (:%q idx))
   (pushq (:rcontext target::tcr.db-link))
-  (movq (:%q target::rsp)(:rcontext target::tcr.db-link))
+  (movq (:%q x8664::rsp)(:rcontext target::tcr.db-link))
   (movq (:%q val) (:@ (:%q tlb-pointer) (:%q idx))))
 
 
