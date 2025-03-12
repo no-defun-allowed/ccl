@@ -1440,8 +1440,8 @@
 	(incf nconstants)
         (setf (uvref constants-vector (decf last)) debug-info))
       (incf nconstants)
-      (dolist (c constants)
-        (setf (uvref constants-vector (decf last)) (car c)))
+      (do ((n 0 (1+ n))) ((= n (length constants)))
+        (setf (uvref constants-vector (1+ n)) (aref constants n)))
       (let* ((code-bytes (let ((nbytes 0))
 			   (do-dll-nodes (frag frag-list nbytes)
 			     (incf nbytes (frag-length frag)))))
@@ -1533,8 +1533,8 @@
         (setf (uvref function-vector (decf last)) name))
       (when debug-info
         (setf (uvref function-vector (decf last)) debug-info))
-      (dolist (c constants)
-        (setf (uvref function-vector (decf last)) (car c)))
+      (do ((n 0 (1+ n))) ((= n (length constants)))
+        (setf (uvref function-vector (1+ n)) (aref constants n)))
       (function-vector-to-function function-vector))))
 
 (defun %define-x86-lap-function (name forms &optional (bits 0))

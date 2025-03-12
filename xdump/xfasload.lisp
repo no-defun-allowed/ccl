@@ -993,15 +993,20 @@
                                                    *target-backend*)))
          (n (+ (length prefix) vlen)))
     (declare (fixnum n))
-    (let* ((vector (xload-make-ivector 
-                    (if read-only-p
-                      *xload-readonly-space*
-                      *xload-dynamic-space*)
+    (let* ((vector (xload-make-ivector
+                    (target-arch-case
+                     (:x8664 *xload-code-space*)
+                     (otherwise
+                      (if read-only-p
+                          *xload-readonly-space*
+                          *xload-dynamic-space*)))
                     :code-vector
                     n))
            (j -1))
       (declare (fixnum j))
       (dotimes (i n)
+        ;; XXX: x8664 code vectors are (UNSIGNED-BYTE 8) vectors.
+        ;; This is not how you copy into one.
         (setf (xload-%fullword-ref vector i)
               (if prefix
                 (pop prefix)

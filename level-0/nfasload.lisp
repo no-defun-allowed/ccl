@@ -683,11 +683,13 @@
 
 
 
-#-x86-target
+#-x8632-target
 (deffaslop $fasl-code-vector (s)
   (let* ((element-count (%fasl-read-count s))
-         (size-in-bytes (* 4 element-count))
-         (vector (allocate-typed-vector :code-vector element-count)))
+         (size-in-bytes (* (target-arch-case (:x8664 1) (otherwise 4)) element-count))
+         (vector (target-arch-case
+                  (:x8664 (allocate-in-code-area element-count))
+                  (otherwise (allocate-typed-vector :code-vector element-count)))))
     (declare (fixnum element-count size-in-bytes))
     (%epushval s vector)
     (%fasl-read-n-bytes s vector 0 size-in-bytes)

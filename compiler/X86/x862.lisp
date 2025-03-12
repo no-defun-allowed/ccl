@@ -177,8 +177,6 @@
 (defvar *x862-valid-register-annotations* 0)
 (defvar *x862-register-annotation-types* nil)
 (defvar *x862-register-ea-annotations* nil)
-(defvar *x862-constant-alist* nil)
-(defvar *x862-constant-cache* nil)
 (defvar *x862-double-float-constant-alist* nil)
 (defvar *x862-single-float-constant-alist* nil)
 
@@ -261,28 +259,12 @@
 
 (declaim (fixnum *x862-vstack* *x862-cstack*))
 
-
-;; When there are more than this many constants, create an auxiliary hash table to keep track of them.
-(defconstant $x86-constant-cache-limit 400)
-
-
-
-
 (defun x86-immediate-label (imm)
-  (or (if (fixnump *x862-constant-cache*)
-          (cdr (assoc imm *x862-constant-alist* :test #'eq))
-          (gethash imm *x862-constant-cache*))
-      (let* ((lab (aref *backend-labels* (backend-get-next-label))))
-        (push (cons imm lab) *x862-constant-alist*)
-        (if (fixnump *x862-constant-cache*)
-           (when (> (incf *x862-constant-cache*) $x86-constant-cache-limit) ;; alist getting too big, make an index.
-             (let ((hash (make-hash-table :size (* 2 $x86-constant-cache-limit) :test #'eq)))
-               (dolist (cell *x862-constant-alist*)
-                 (setf (gethash (car cell) hash) (cdr cell)))
-               (setq *x862-constant-cache* hash)))
-           (setf (gethash imm *x862-constant-cache*) lab))
-        lab)))
+  ;; Tagged immediates go in the function object; keep using the
+  ;; BACKEND- machinery for that.
+  (backend-immediate-index imm))
 
+;;; But unboxed immediates can go in code just fine.
 (defun x86-double-float-constant-label (imm)
   (or (cdr (assoc imm *x862-double-float-constant-alist*))
       (let* ((lab (aref *backend-labels* (backend-get-next-label))))
@@ -647,8 +629,7 @@
            (*x862-valid-register-annotations* 0)
            (*x862-register-ea-annotations* (x862-make-stack 16))
            (*x862-register-restore-ea* nil)
-           (*x862-constant-alist* nil)
-           (*x862-constant-cache* 0)
+           (*backend-immediates* (x862-make-stack 64 target::subtag-simple-vector))
            (*x862-double-float-constant-alist* nil)
            (*x862-single-float-constant-alist* nil)
            (*x862-vstack* 0)
@@ -771,24 +752,26 @@
            (*x862-gpr-location-lregs* (make-array 16 :initial-element nil)))
       (declare (dynamic-extent *x862-gpr-locations* *x862-gpr-location-lregs*))
       (set-fill-pointer
-       *backend-labels*
+       *backend-immediates*
        (set-fill-pointer
-        *x862-undo-stack*
-        (set-fill-pointer 
-         *x862-undo-because*
-         0)))
+        *backend-labels*
+        (set-fill-pointer
+         *x862-undo-stack*
+         (set-fill-pointer 
+          *x862-undo-because*
+          0))))
       (backend-get-next-label)          ; start @ label 1, 0 is confused with NIL in compound cd
       (let* ((vinsns (make-vinsn-list))
              (*vinsn-list* vinsns)
              (result-reg (make-wired-lreg *x862-result-reg*)))
 	(setq bits (x862-toplevel-form vinsns result-reg
 				       $backend-return (afunc-acode afunc)))
-	(optimize-vinsns vinsns)            
-        (do* ((constants *x862-constant-alist* (cdr constants)))
-             ((null constants))
-          (let* ((imm (caar constants)))
+	(optimize-vinsns vinsns)
+        (do ((n 0 (1+ n)))
+            ((= n (length *backend-immediates*)))
+          (let ((imm (aref *backend-immediates* n)))
             (when (x862-symbol-locative-p imm)
-              (setf (caar constants) (car imm)))))
+              (setf (aref *backend-immediates* n) (car imm)))))
         (when (logbitp x862-debug-vinsns-bit *x862-debug-mask*)
           (format t "~% vinsns for ~s (after generation)" (afunc-name afunc))
           (do-dll-nodes (v vinsns) (format t "~&~s" v))
@@ -832,36 +815,9 @@
                     (setf (vinsn-label-info lab) (emit-x86-lap-label frag-list lab))
                     (let* ((val (single-float-bits sfloat)))
                       (x86-lap-directive frag-list :long val)))))
-              (target-arch-case
-               (:x8632
-                (x86-lap-directive frag-list :align 2)
-                ;; start of self reference table
-                (x86-lap-directive frag-list :long 0)
-                (emit-x86-lap-label frag-list srt-tag)
-                ;; make space for self-reference offsets
-                (do-dll-nodes (frag frag-list)
-                  (dolist (reloc (frag-relocs frag))
-                    (when (eq (reloc-type reloc) :self)
-                      (x86-lap-directive frag-list :long 0))))
-                (x86-lap-directive frag-list :long x8632::function-boundary-marker))
-               (:x8664
-                (x86-lap-directive frag-list :align 3)
-                (x86-lap-directive frag-list :quad x8664::function-boundary-marker)))
 
               (emit-x86-lap-label frag-list end-code-tag)
-		   
-              (dolist (c (reverse *x862-constant-alist*))
-                (let* ((vinsn-label (cdr c)))
-                  (or (vinsn-label-info vinsn-label)
-                      (setf (vinsn-label-info vinsn-label)
-                            (find-or-create-x86-lap-label
-                             vinsn-label)))
-                  (emit-x86-lap-label frag-list vinsn-label)
-                  (target-arch-case
-                   (:x8632
-                    (x86-lap-directive frag-list :long 0))
-                   (:x8664
-                    (x86-lap-directive frag-list :quad 0)))))
+	
 
               (if (logbitp $fbitnonnullenv (the fixnum (afunc-bits afunc)))
                 (setq bits (+ bits (ash 1 $lfbits-nonnullenv-bit))))
@@ -892,19 +848,6 @@
                      (regsave-addr (if regsave-label (x862-encode-register-save-ea
                                                       *x862-register-restore-ea*
                                                       *x862-register-restore-count*))))
-                (target-arch-case
-                 (:x8632
-                  (when debug-info
-                    (x86-lap-directive frag-list :long 0))
-                  (when fname
-                    (x86-lap-directive frag-list :long 0))
-                  (x86-lap-directive frag-list :long 0))
-                 (:x8664
-                  (when debug-info
-                    (x86-lap-directive frag-list :quad 0))
-                  (when fname
-                    (x86-lap-directive frag-list :quad 0))
-                  (x86-lap-directive frag-list :quad 0)))
 
                 (relax-frag-list frag-list)
                 (apply-relocs frag-list)
@@ -936,10 +879,10 @@
                 (setf (afunc-lfun afunc)
                       #+x86-target
                       (if (eq *host-backend* *target-backend*)
-                        (create-x86-function fname frag-list *x862-constant-alist* bits debug-info)
-                        (cross-create-x86-function fname frag-list *x862-constant-alist* bits debug-info))
+                        (create-x86-function fname frag-list *backend-immediates* bits debug-info)
+                        (cross-create-x86-function fname frag-list *backend-immediates* bits debug-info))
                       #-x86-target
-                      (cross-create-x86-function fname frag-list *x862-constant-alist* bits debug-info))))))))
+                      (cross-create-x86-function fname frag-list *backend-immediates* bits debug-info))))))))
     afunc))
 
 
@@ -3651,10 +3594,8 @@
              (dest ($ x8664::arg_z))
              (inherited-vars (afunc-inherited-vars afunc))
              (arch (backend-target-arch *target-backend*))
-             (vsize (+ (length inherited-vars)
-                       5                ; %closure-code%, afunc
-                       1))
-             (cell 4))
+             (vsize (+ (length inherited-vars) 2))
+             (cell 1))
         (! lri header (arch::make-vheader vsize (nx-lookup-target-uvector-subtag :function)))
         (! lri disp  (- (ash (logandc2 (+ vsize 2) 1) (arch::target-word-shift arch)) x8664::fulltag-misc))
         (! %allocate-uvector dest)

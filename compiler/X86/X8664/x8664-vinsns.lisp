@@ -642,19 +642,23 @@
                                     ((arg0 t)))
   (cmpq (:$l (:apply target-t-value)) (:%q arg0)))
 
+(defun function-constant-offset (n)
+  ;; + 2 to skip the header and entrypoint.
+  (- (ash (+ 2 n) x8664::word-shift) x8664::fulltag-function))
+
 (define-x8664-vinsn (ref-constant :constant-ref) (((dest :lisp))
-                                  ((lab :label)))
-  (movq (:@ (:^ lab) (:%q x8664::fn)) (:%q dest)))
+                                                  ((index :u32const)))
+  (movq (:@ (:%q x8664::fn) (:apply function-constant-offset index)) (:%q dest)))
 
 (define-x8664-vinsn compare-constant-to-register (()
-                                                  ((lab :label)
+                                                  ((index :u32const)
                                                    (reg :lisp)))
-  (cmpq (:@ (:^ lab) (:%q x8664::fn)) (:%q reg)))
+  (cmpq (:@ (:%q x8664::fn) (:apply function-constant-offset index)) (:%q reg)))
 
 
 (define-x8664-vinsn (vpush-constant :push :node :vsp) (()
-                                                       ((lab :label)))
-  (pushq (:@ (:^ lab) (:%q x8664::fn))))
+                                                       ((index :u32const)))
+  (pushq (:@ (:%q x8664::fn) (:apply function-constant-offset index))))
 
   
 (define-x8664-vinsn (jump :jump)
