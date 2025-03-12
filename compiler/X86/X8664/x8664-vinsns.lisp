@@ -657,7 +657,10 @@
 (define-x8664-vinsn (vpush-constant :push :node :vsp) (()
                                                        ((index :u32const)))
   (pushq (:@ (:apply function-constant-offset index) (:%q x8664::fn))))
+<<<<<<< HEAD
 
+=======
+>>>>>>> 050660e03b85c95aa9bbc2b4215fe81aaa8da2f0
   
 (define-x8664-vinsn (jump :jump)
     (()
