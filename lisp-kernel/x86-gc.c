@@ -1765,20 +1765,17 @@ forward_range(LispObj *range_start, LispObj *range_end)
         }
         *p++ = 0;
       } else {
-	if (header_subtag(node) == subtag_function) {
 #ifdef X8632
+	if (header_subtag(node) == subtag_function) {
 	  int skip = (unsigned short)(p[1]);
 
 	  /* XXX bootstrapping */
 	  if (skip & 0x8000)
 	    skip = header_element_count(node) - (skip & 0x7fff);
-
-#else
-	  int skip = (int)(p[1]);
-#endif
 	  p += skip;
 	  nwords -= skip;
 	}
+#endif
         p++;
         while(nwords--) {
           update_noderef(p);

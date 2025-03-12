@@ -513,16 +513,18 @@
   
 
 (define-x8664-vinsn (save-lisp-context-no-stack-args :uses-frame-pointer) (()
-                                                     ())
+                                                                           ())
   (pushq (:%q x8664::rbp))
-  (movq (:%q x8664::rsp) (:%q x8664::rbp)))
+  (movq (:%q x8664::rsp) (:%q x8664::rbp))
+  (pushq (:%q x8664::fn)))
 
 
 (define-x8664-vinsn (save-lisp-context-offset :needs-frame-pointer) (()
 					      ((nbytes-pushed :s32const)))
   (movq (:%q x8664::rbp) (:@ (:apply + nbytes-pushed x8664::node-size) (:%q x8664::rsp)))
   (leaq (:@ (:apply + nbytes-pushed x8664::node-size) (:%q x8664::rsp)) (:%q x8664::rbp))
-  (popq  (:@ x8664::node-size (:%q x8664::rbp))))
+  (popq  (:@ x8664::node-size (:%q x8664::rbp)))
+  (pushq (:%q x8664::fn)))
 
 (define-x8664-vinsn (save-lisp-context-variable-arg-count :needs-frame-pointer) (()
                                                           ()
@@ -537,7 +539,8 @@
   :push
   (pushq (:%q x8664::rbp))
   (movq (:%q x8664::rsp) (:%q x8664::rbp))
-  :done)
+  :done
+  (pushq (:%q x8664::fn)))
 
 ;;; We know that some args were pushed, but don't know how many were
 ;;; passed.
@@ -548,7 +551,8 @@
   (subq (:$b (* $numx8664argregs x8664::node-size)) (:%q temp))
   (movq (:%q x8664::rbp) (:@ x8664::node-size (:%q x8664::rsp) (:%q temp)))
   (leaq (:@ x8664::node-size (:%q x8664::rsp) (:%q temp)) (:%q x8664::rbp))
-  (popq  (:@ x8664::node-size (:%q x8664::rbp))))
+  (popq  (:@ x8664::node-size (:%q x8664::rbp)))
+  (pushq (:%q x8664::fn)))
 
 
 (define-x8664-vinsn (vpush-register :push :node :vsp)
@@ -628,9 +632,9 @@
 (define-x8664-vinsn (restore-full-lisp-context :lispcontext :pop :vsp :uses-frame-pointer)
     (()
      ())
+  (popq (:%q x8664::fn))
   (movq (:%q x8664::rbp) (:%q x8664::rsp))
-  (popq (:%q x8664::rbp))
-  )
+  (popq (:%q x8664::rbp)))
 
 (define-x8664-vinsn compare-to-nil (()
                                     ((arg0 t)))
@@ -2355,12 +2359,11 @@
 (define-x8664-vinsn (jump-return-pc :jumpLR)
     (()
      ())
-  (popq (:%q x8664::fn))
   (ret))
 
 (define-x8664-vinsn label-address (((dest :lisp))
                                    ((lab :label)))
-  (leaq (:@ (:^ lab)  (:%q x8664::rip)) (:%q dest))
+  (leaq (:@ (:^ lab) (:%q x8664::rip)) (:%q dest)))
 
 
 (define-x8664-vinsn (mkunwind :call :subprim :needs-frame-pointer) (() ())
@@ -5091,7 +5094,8 @@
 (define-x8664-vinsn establish-fn (()
                                   ()
                                   ((entry (:label 1))))
-  (pushq (:%q x8664::fn)))
+  #| intentionally left blank |#
+  )
 
 (define-x8664-vinsn %ilognot (((dest :imm)
                                (src :imm))
