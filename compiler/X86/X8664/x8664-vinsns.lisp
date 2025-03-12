@@ -657,10 +657,6 @@
 (define-x8664-vinsn (vpush-constant :push :node :vsp) (()
                                                        ((index :u32const)))
   (pushq (:@ (:apply function-constant-offset index) (:%q x8664::fn))))
-<<<<<<< HEAD
-
-=======
->>>>>>> 050660e03b85c95aa9bbc2b4215fe81aaa8da2f0
   
 (define-x8664-vinsn (jump :jump)
     (()
@@ -2087,7 +2083,7 @@
 (define-x8664-vinsn (vpush-label :push :node :vsp) (()
                                                     ((label :label))
                                                     ((temp :lisp)))
-  (leaq (:@ (:^ label) (:%q x8664::fn)) (:%q temp))
+  (leaq (:@ (:^ label) (:%q x8664::rip)) (:%q temp))
   (pushq (:%q temp)))
 
 ;; ????
@@ -2195,7 +2191,7 @@
 (define-x8664-vinsn (list :call) (()
                                   ()
                                   ((entry (:label 1))))
-  (leaq (:@ (:^ :back) (:%q x8664::fn)) (:%q x8664::ra0))
+  (leaq (:@ (:^ :back) (:%q x8664::rip)) (:%q x8664::ra0))
   (jmp (:@ .SPconslist))
   :back)
 
@@ -2274,7 +2270,7 @@
 
 (defmacro define-x8664-subprim-lea-jmp-vinsn ((name &rest other-attrs) spno)
   `(define-x8664-vinsn (,name :call :subprim ,@other-attrs) (() () ((entry (:label 1))))
-    (leaq (:@ (:^ :back) (:%q x8664::fn)) (:%q x8664::ra0))
+    (leaq (:@ (:^ :back) (:%q x8664::rip)) (:%q x8664::ra0))
     (jmp (:@ ,spno))
     :back))
 
@@ -2364,8 +2360,7 @@
 
 (define-x8664-vinsn label-address (((dest :lisp))
                                    ((lab :label)))
-  
-  (leaq (:@ (:^ lab)  (:%q x8664::fn)) (:%q dest)))                               
+  (leaq (:@ (:^ lab)  (:%q x8664::rip)) (:%q dest))
 
 
 (define-x8664-vinsn (mkunwind :call :subprim :needs-frame-pointer) (() ())
@@ -4064,12 +4059,12 @@
 (define-x8664-vinsn load-double-float-constant (((dest :double-float))
                                                 ((lab :label)
 ))
-  (movsd (:@ (:^ lab) (:%q x8664::fn)) (:%xmm dest)))
+  (movsd (:@ (:^ lab) (:%q x8664::rip)) (:%xmm dest)))
 
 (define-x8664-vinsn load-single-float-constant (((dest :single-float))
                                                 ((lab :label)
 ))
-  (movss (:@ (:^ lab) (:%q x8664::fn)) (:%xmm dest)))
+  (movss (:@ (:^ lab) (:%q x8664::rip)) (:%xmm dest)))
 
 (define-x8664-subprim-call-vinsn (misc-set) .SPmisc-set)
 
@@ -4084,7 +4079,7 @@
 (define-x8664-vinsn (throw :jump-unknown :needs-frame-pointer) (()
                                            ()
                                            ((entry (:label 1))))
-  (leaq (:@ (:^ :back) (:%q x8664::fn)) (:%q x8664::ra0))
+  (leaq (:@ (:^ :back) (:%q x8664::rip)) (:%q x8664::ra0))
   (jmp (:@ .SPthrow))
   :back
   (uuo-error-reg-not-tag (:%q x8664::temp0) (:$ub x8664::subtag-catch-frame)))
@@ -5112,7 +5107,7 @@
 (define-x8664-vinsn double-float-negate (((reg :double-float))
                                          ((reg :double-float))
 					 ((tmp :double-float)))
-  (movsd (:@ (:^ :const) (:% x8664::fn)) (:%xmm tmp))
+  (movsd (:@ (:^ :const) (:% x8664::rip)) (:%xmm tmp))
   (pxor (:%xmm tmp) (:%xmm reg))
   (:uuo-section)
   :const
@@ -5122,7 +5117,7 @@
 (define-x8664-vinsn single-float-negate (((reg :single-float))
                                          ((reg :single-float))
 					 ((tmp :single-float)))
-  (movss (:@ (:^ :const) (:% x8664::fn)) (:%xmm tmp)) 
+  (movss (:@ (:^ :const) (:% x8664::rip)) (:%xmm tmp))
   (pxor (:%xmm tmp) (:%xmm reg))
   (:uuo-section)
   :const
@@ -5204,8 +5199,8 @@
                                     ((idx :u32)
                                      (count :u32const))
                                     ((rjmp :lisp)))
-  (movl (:@ (:^ :jtab) (:%q x8664::fn) (:%q idx) 4) (:%l idx))
-  (leaq (:@ (:%q x8664::fn) (:%q idx)) (:%q rjmp))
+  (movl (:@ (:^ :jtab) (:%q x8664::rip) (:%q idx) 4) (:%l idx))
+  (leaq (:@ (:%q x8664::rip) (:%q idx)) (:%q rjmp))
   (jmp (:%q rjmp))
   (:uuo-section)
   (:align 2)
