@@ -492,17 +492,11 @@
 (defx86lapmacro recover-fn ()
   `(movl ($ :self) (% fn)))
 
-
+#+x8632-target
 (defx86lapmacro lisp-call (arg)
-  (target-arch-case
-   (:x8632
-    `(progn
-       (:talign x8632::fulltag-tra)
-       (call ,arg)))
-   (:x8664
-    `(progn
-       (:talign 4)
-       (call ,arg)))))
+  `(progn
+     (:talign x8632::fulltag-tra)
+     (call ,arg)))
 
 (defx86lapmacro lisp-jump (arg)
   (target-arch-case
@@ -523,8 +517,7 @@
        (recover-fn)))
    (:x8664
     `(progn
-       (lisp-call (@ ,(x86-subprim-offset name)))
-       (recover-fn-from-rip)))))
+       (call (@ ,(x86-subprim-offset name)))))))
 
 (defx86lapmacro jump-subprim (name)
   (target-arch-case
@@ -534,8 +527,7 @@
        (recover-fn)))
    (:x8664
     `(progn
-       (lisp-jump (@ ,(x86-subprim-offset name)))
-       (recover-fn-from-rip)))))
+       (lisp-jump (@ ,(x86-subprim-offset name)))))))
 
 
  (defx86lapmacro %car (src dest)
@@ -576,12 +568,6 @@
    (:x8664
     `(movq (@ ',constant (% ,fn)) (% ,dest)))))
 
-(defx86lapmacro recover-fn-from-rip ()
-  (let* ((next (gensym)))
-    `(progn
-      (lea (@ (- (:^ ,next)) (% rip)) (% fn))
-      ,next)))
-
 ;;; call symbol named NAME, setting nargs to NARGS.  Do the TRA
 ;;; hair.   Args should already be in arg regs, and we expect
 ;;; to return a single value.
@@ -598,8 +584,7 @@
     `(progn
       (load-constant ,name fname)
       (set-nargs ,nargs)
-      (lisp-call (@ x8664::symbol.fcell (% fname)))
-      (recover-fn-from-rip)))))
+      (call (@ x8664::symbol.fcell (% fname)))))))
 
 
 ;;;  tail call the function named by NAME with nargs NARGS.  %FN is

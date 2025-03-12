@@ -1560,8 +1560,6 @@
     (x86-lap-directive frag-list :byte 0) ;regsave mask
     (emit-x86-lap-label frag-list entry-code-tag)
 
-    (unless (equalp (car forms) '(recover-fn-from-rip))
-      (x86-lap-form `(lea (@ (:^ ,entry-code-tag) (% rip)) (% fn)) frag-list instruction main-frag-list exception-frag-list))
     (dolist (f forms)
       (setq frag-list (x86-lap-form f frag-list instruction main-frag-list exception-frag-list)))
     (setq frag-list main-frag-list)

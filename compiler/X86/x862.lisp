@@ -3360,9 +3360,7 @@
     (@ labelnum)
     (target-arch-case
      (:x8632
-      (! recover-fn))
-     (:x8664
-      (! recover-fn-from-rip)))))
+      (! recover-fn)))))
 
   
 (defun x862-call-symbol (seg jump-p)
