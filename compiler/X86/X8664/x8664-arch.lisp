@@ -283,6 +283,7 @@
 ;;; sequence to hold the current function, since it might get GCed otherwise.
 ;;; (The odds of this happening are low, but non-zero.)
 (defx86reg xfn temp1)
+(defx86reg nfn temp1)
 
 (defx86reg ra1 fn)
 
@@ -594,6 +595,9 @@
   plist
   binding-index
 )
+
+(define-fixedsized-object function (fulltag-function)
+  entrypoint)
 
 (defconstant nilsym-offset (+ t-offset symbol.size))
 

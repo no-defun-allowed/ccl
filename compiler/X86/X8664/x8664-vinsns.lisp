@@ -316,13 +316,14 @@
 (define-x8664-vinsn (call-known-symbol :call) (((result (:lisp x8664::arg_z)))
                                                ()
 					       ((entry (:label 1))))
-  (call (:@ x8664::symbol.fcell (:% x8664::fname))))
+  (movq (:@ x8664::symbol.fcell (:% x8664::fname)) (:% x8664::nfn))
+  (call (:@ x8664::function.entrypoint (:% x8664::nfn))))
 
 
 (define-x8664-vinsn (jump-known-symbol :jumplr) (()
                                                  ())
-
-  (jmp (:@ x8664::symbol.fcell (:% x8664::fname))))
+  (movq (:@ x8664::symbol.fcell (:% x8664::fname)) (:% x8664::nfn))
+  (jmp (:@ x8664::function.entrypoint (:% x8664::nfn))))
 
 (define-x8664-vinsn set-nargs (()
 			       ((n :s16const)))
@@ -516,7 +517,8 @@
                                                                            ())
   (pushq (:%q x8664::rbp))
   (movq (:%q x8664::rsp) (:%q x8664::rbp))
-  (pushq (:%q x8664::fn)))
+  (pushq (:%q x8664::fn))
+  (movq (:%q x8664::nfn) (:%q x8664::fn)))
 
 
 (define-x8664-vinsn (save-lisp-context-offset :needs-frame-pointer) (()
@@ -524,7 +526,8 @@
   (movq (:%q x8664::rbp) (:@ (:apply + nbytes-pushed x8664::node-size) (:%q x8664::rsp)))
   (leaq (:@ (:apply + nbytes-pushed x8664::node-size) (:%q x8664::rsp)) (:%q x8664::rbp))
   (popq  (:@ x8664::node-size (:%q x8664::rbp)))
-  (pushq (:%q x8664::fn)))
+  (pushq (:%q x8664::fn))
+  (movq (:%q x8664::nfn) (:%q x8664::fn)))
 
 (define-x8664-vinsn (save-lisp-context-variable-arg-count :needs-frame-pointer) (()
                                                           ()
@@ -540,7 +543,8 @@
   (pushq (:%q x8664::rbp))
   (movq (:%q x8664::rsp) (:%q x8664::rbp))
   :done
-  (pushq (:%q x8664::fn)))
+  (pushq (:%q x8664::fn))
+  (movq (:%q x8664::nfn) (:%q x8664::fn)))
 
 ;;; We know that some args were pushed, but don't know how many were
 ;;; passed.
@@ -552,7 +556,8 @@
   (movq (:%q x8664::rbp) (:@ x8664::node-size (:%q x8664::rsp) (:%q temp)))
   (leaq (:@ x8664::node-size (:%q x8664::rsp) (:%q temp)) (:%q x8664::rbp))
   (popq  (:@ x8664::node-size (:%q x8664::rbp)))
-  (pushq (:%q x8664::fn)))
+  (pushq (:%q x8664::fn))
+  (movq (:%q x8664::nfn) (:%q x8664::fn)))
 
 
 (define-x8664-vinsn (vpush-register :push :node :vsp)
@@ -2392,10 +2397,10 @@
   (movl (:%l x8664::temp0) (:%l tag))
   (andl (:$b x8664::fulltagmask) (:%l tag))
   (cmpl (:$b x8664::fulltag-symbol) (:%l tag))
-  (cmovgq (:%q x8664::temp0) (:%q x8664::xfn))
+  (cmovgq (:%q x8664::temp0) (:%q x8664::nfn))
   (jl :bad)
-  (cmoveq (:@ x8664::symbol.fcell (:%q x8664::fname)) (:%q x8664::xfn))
-  (call (:%q x8664::xfn))
+  (cmoveq (:@ x8664::symbol.fcell (:%q x8664::fname)) (:%q x8664::nfn))
+  (call (:@ x8664::function.entrypoint (:%q x8664::nfn)))
   (:anchored-uuo-section :resume)
   :bad
   (:anchored-uuo (uuo-error-not-callable)))
@@ -2407,11 +2412,10 @@
   (movl (:%l x8664::temp0) (:%l tag))
   (andl (:$b x8664::fulltagmask) (:%l tag))
   (cmpl (:$b x8664::fulltag-symbol) (:%l tag))
-  (cmovgq (:%q x8664::temp0) (:%q x8664::xfn))
+  (cmovgq (:%q x8664::temp0) (:%q x8664::nfn))
   (jl :bad)
   (cmoveq (:@ x8664::symbol.fcell (:%q x8664::fname)) (:%q x8664::xfn))
-  (jmp (:%q x8664::xfn))
-
+  (jmp (:@ x8664::function.entrypoint (:%q x8664::nfn)))
   (:anchored-uuo-section :resume)
   :bad
   (:anchored-uuo (uuo-error-not-callable)))
