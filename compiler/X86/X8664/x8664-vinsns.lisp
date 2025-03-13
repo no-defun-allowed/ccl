@@ -2188,14 +2188,14 @@
 (define-x8664-vinsn (call-known-function :call) (()
 						 ()
                                                  ((entry (:label 1))))
-  (call (:%q x8664::temp0)))
+  (movq (:%q x8664::temp0) (:%q x8664::nfn))
+  (call (:@ x8664::function.entrypoint (:%q x8664::nfn))))
 
 (define-x8664-vinsn (jump-known-function :jumplr) (()
 						   ()
                                                    ((xfn (:lisp #.x8664::xfn))))
-  (movq (:%q x8664::fn) (:%q x8664::xfn))
-  (movq (:%q x8664::temp0)  (:%q x8664::fn))
-  (jmp (:%q x8664::fn)))
+  (movq (:%q x8664::temp0) (:%q x8664::nfn))
+  (jmp (:@ x8664::function.entrypoint (:%q x8664::nfn))))
 
 (define-x8664-vinsn (list :call) (()
                                   ()
