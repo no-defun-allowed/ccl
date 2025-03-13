@@ -565,7 +565,7 @@
           (if (typep val 'fixnum)
 	    (setq form (ash val (arch::target-fixnum-shift (backend-target-arch *target-backend*))))
             (let* ((constant-label (ensure-x86-lap-constant-label val )))
-              (setq form `(:^ ,(x86-lap-label-name constant-label)))))))
+              (setq form `(:@ ,(function-constant-offset (x86-lap-label-name constant-label)) (:%q x8664::fn)))))))
       
       (if (null form)
         (setq form (arch::target-nil-value (backend-target-arch *target-backend*)))

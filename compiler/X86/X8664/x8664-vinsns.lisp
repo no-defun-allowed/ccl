@@ -650,8 +650,8 @@
   (cmpq (:$l (:apply target-t-value)) (:%q arg0)))
 
 (defun function-constant-offset (n)
-  ;; 1+ to skip the entrypoint.
-  (+ x8664::misc-function-offset (ash (1+ n) x8664::word-shift)))
+  (+ x8664::misc-function-offset
+     (ash (+ x8664::function.element-count n) x8664::word-shift)))
 
 (define-x8664-vinsn (ref-constant :constant-ref) (((dest :lisp))
                                                   ((index :u32const)))
@@ -2414,7 +2414,7 @@
   (cmpl (:$b x8664::fulltag-symbol) (:%l tag))
   (cmovgq (:%q x8664::temp0) (:%q x8664::nfn))
   (jl :bad)
-  (cmoveq (:@ x8664::symbol.fcell (:%q x8664::fname)) (:%q x8664::xfn))
+  (cmoveq (:@ x8664::symbol.fcell (:%q x8664::fname)) (:%q x8664::nfn))
   (jmp (:@ x8664::function.entrypoint (:%q x8664::nfn)))
   (:anchored-uuo-section :resume)
   :bad
