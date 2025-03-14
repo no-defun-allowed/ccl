@@ -364,11 +364,11 @@ define(`vrefr',`
 ')	
 
 define(`jump_fn',`
-	__(jmp *%fn)
+	__(jmp function.entrypoint(%nfn))
 ')
 			
 define(`jump_fname',`
-	__(mov symbol.fcell(%fname),%fn)
+	__(mov symbol.fcell(%fname),%nfn)
 	jump_fn()
 ')	
 

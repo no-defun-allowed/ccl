@@ -1522,7 +1522,7 @@
     (let* ((function-vector (allocate-typed-vector :function (1+ nconstants)))
            (last (1- (uvsize function-vector))))
       (declare (fixnum last))
-      (setf (uvref function-vector 0) (code-vector-entry-point code-vector))
+      (setf (uvref function-vector 0) (%code-vector-to-entrypoint code-vector))
       (setf (uvref function-vector last) bits)
       (when name
         (setf (uvref function-vector (decf last)) name))

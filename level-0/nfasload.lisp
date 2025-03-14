@@ -430,7 +430,7 @@
       (%bad-fasl s))
     (%epushval s (svref (faslstate.faslevec s) idx))))
 
-#+x86-target
+#+x8632-target
 ;;; Read a "concatenated" lisp function, in which the machine code
 ;;; and constants are both contained in the same underlying uvector.
 (deffaslop $fasl-clfun (s)
@@ -441,7 +441,6 @@
     (declare (fixnum size-in-elements size-of-code))
     (%epushval s function)
     (%fasl-read-n-bytes s vector 0 (ash size-of-code target::word-shift))
-    #+x8632-target
     (%update-self-references vector)
     (do* ((numconst (- size-in-elements size-of-code))
           (i 0 (1+ i))
@@ -450,8 +449,7 @@
           (setf (faslstate.faslval s) function))
       (declare (fixnum i numconst constidx))
       (setf (%svref vector constidx) (%fasl-expr s)))))
-    
-    
+
 (deffaslop $fasl-lfuncall (s)
   (let* ((fun (%fasl-expr-preserve-epush s)))
     ;(break "fun = ~s" fun)
@@ -694,6 +692,7 @@
     (%epushval s vector)
     (%fasl-read-n-bytes s vector 0 size-in-bytes)
     (%make-code-executable vector)
+    #+x8664-target (setf vector (%code-vector-to-entrypoint vector))
     vector))
 
 (defun fasl-read-gvector (s subtype)
@@ -729,7 +728,12 @@
   (fasl-read-gvector s target::subtag-simple-vector))
 
 (deffaslop $fasl-function (s)
-  (fasl-read-gvector s target::subtag-function))
+  (fasl-read-gvector s target::subtag-function)
+  ;; Fix the tag on x8664; functions are tagged FULLTAG-MISC on other
+  ;; architectures but they are FULLTAG-FUNCTION on x8664.
+  (target-arch-case
+   (:x8664 (setf (faslstate.faslval s)
+                 (%function-vector-to-function (faslstate.faslval s))))))
 
 (deffaslop $fasl-istruct (s)
   (fasl-read-gvector s target::subtag-istruct))

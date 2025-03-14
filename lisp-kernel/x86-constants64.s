@@ -623,6 +623,10 @@ define_subtag(function_boundary_marker,fulltag_imm_1,15)
          _node(binding_index)
 	_endstructf
 
+        _structf(function,-fulltag_function)
+         _node(entrypoint)
+        _endstructf
+
 	_structf(catch_frame)
 	 _node(catch_tag)	/* #<unbound> -> unwind-protect, else catch   */
 	 _node(link)		/* backpointer to previous catch frame   */

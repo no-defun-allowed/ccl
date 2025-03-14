@@ -1172,8 +1172,8 @@ _spentry(jmpsym)
 _endsubp(jmpsym)
 
 _spentry(jmpnfn)
-	__(movq %temp0,%fn)
-	__(jmp *%fn)
+	__(movq %temp0,%nfn)
+	__(jmp function.entrypoint(%fn))
 _endsubp(jmpnfn)
 
 _spentry(funcall)

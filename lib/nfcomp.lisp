@@ -1766,7 +1766,10 @@ Will differ from *compiling-file* during an INCLUDE")
 (defun fasl-dump-function (f)
   (if (and (not (eq *fasl-backend* *host-backend*))
            (typep f 'function))
-    (compiler-bug "Dumping a native function constant ~s during cross-compilation." f))
+      (compiler-bug "Dumping a native function constant ~s during cross-compilation." f))
+  (target-arch-case
+   (:x8664
+    (when (typep f 'function) (setf f (%function-to-function-vector f))))) 
   (let* ((n (uvsize f)))
     (fasl-out-opcode $fasl-function f)
     (fasl-out-count n)
@@ -1774,7 +1777,7 @@ Will differ from *compiling-file* during an INCLUDE")
       (if (= i 0)
           (target-arch-case
            (:arm (fasl-dump-form 0))
-           (:x8664 (fasl-dump-form (recover-code-vector-from-entrypoint (%svref f i))))
+           (:x8664 (fasl-dump-codevector (%entrypoint-to-code-vector (%svref f i))))
            (t (fasl-dump-form (%svref f i))))
           (fasl-dump-form (%svref f i))))))
 

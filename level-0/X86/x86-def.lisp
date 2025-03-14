@@ -28,6 +28,16 @@
   (subb ($ (- x8664::fulltag-function x8664::fulltag-misc)) (% arg_z.b))
   (single-value-return))
 
+(defx86lapfunction %code-vector-to-entrypoint ((arg arg_z))
+  (trap-unless-typecode= arg x8664::subtag-u8-vector)
+  (addb ($ (- 15 x8664::fulltag-misc)) (% arg_z.b))
+  (single-value-return))
+
+(defx86lapfunction %entrypoint-to-code-vector ((arg arg_z))
+  (trap-unless-fulltag= arg 15)
+  (subb ($ (- 15 x8664::fulltag-misc)) (% arg_z.b))
+  (single-value-return))
+
 (defx86lapfunction %function-code-words ((fun arg_z))
   (trap-unless-fulltag= fun x8664::fulltag-function)
   (movl (@ (- x8664::node-size x8664::fulltag-function) (% fun)) (% imm0.l))
