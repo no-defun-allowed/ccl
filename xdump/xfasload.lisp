@@ -1098,11 +1098,14 @@
     (xload-set '*gc-event-status-bits* (xload-integer 0 #|(ash 1 $gc-integrity-check-bit)|#))
 
     (xload-set '%toplevel-catch% (xload-copy-symbol :toplevel))
-    (if *xload-target-use-code-vectors*
-      (xload-set '%closure-code% (xload-save-code-vector
-                                  (backend-xload-info-closure-trampoline-code
-                                   *xload-target-backend*)))
-      (xload-set '%closure-code% *xload-target-nil*))
+    (let ((trampoline (backend-xload-info-closure-trampoline-code
+                       *xload-target-backend*)))
+      (xload-set '%closure-code%
+                 (if (null trampoline)
+                     *xload-target-nil*
+                     (xload-save-code-vector
+                      (backend-xload-info-closure-trampoline-code
+                       *xload-target-backend*)))))
     (let* ((macro-apply-code (funcall
                               (backend-xload-info-macro-apply-code-function
                                *xload-target-backend*))))

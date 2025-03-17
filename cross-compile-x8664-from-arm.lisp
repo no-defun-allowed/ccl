@@ -96,6 +96,13 @@
             (popnlispareas)))
         vstack))))
 
+;; Recompile the FASL dumper, we changed the layout.
+(require-module 'nfcomp t)
+;; We also added a GC trap to allocate in the code area.
+(require-module 'arch t)
+;; And we added an AREA-CODE constant.
+(require-module 'lispequ t)
+
 (defun target-xcompile-ccl (target &optional force)
   (let* ((*target-backend* *host-backend*))
     (require-update-modules *sysdef-modules* force)) ;in the host

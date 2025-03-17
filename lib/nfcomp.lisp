@@ -1777,13 +1777,16 @@ Will differ from *compiling-file* during an INCLUDE")
       (if (= i 0)
           (target-arch-case
            (:arm (fasl-dump-form 0))
-           (:x8664 (fasl-dump-codevector (%entrypoint-to-code-vector (%svref f i))))
+           (:x8664 (fasl-dump-codevector
+                    (if (typep f 'function)
+                        (%entrypoint-to-code-vector (%svref f i))
+                        (%svref f i))))
            (t (fasl-dump-form (%svref f i))))
           (fasl-dump-form (%svref f i))))))
 
 #+x8632-target
 (defun fasl-dump-function (f)
-  (if (and (not (eq *fasl-backend* *host-backend*))
+  (if (and (not (eq *fasl-backend* *host-backend*))xdump/
            (typep f 'function))
     (compiler-bug "Dumping a native function constant ~s during cross-compilation." f))
   (if (and (= (typecode f) target::subtag-xfunction)
@@ -1812,27 +1815,26 @@ Will differ from *compiling-file* during an INCLUDE")
   
 
 ;;; Write a "concatenated function".
+#+x8632-target
 (defun fasl-xdump-clfun (f)
-  (target-arch-case
-   (:x8632
-    (let* ((code (uvref f 0))
-	   (function-size (ash (uvsize code) -2))
-	   (encoded-imm-words (dpb (uvref code 1) (byte 8 8) (uvref code 0)))
-	   (imm-words (if (logbitp 15 encoded-imm-words)
+  (let* ((code (uvref f 0))
+	 (function-size (ash (uvsize code) -2))
+	 (encoded-imm-words (dpb (uvref code 1) (byte 8 8) (uvref code 0)))
+	 (imm-words (if (logbitp 15 encoded-imm-words)
 			(- function-size (ldb (byte 15 0) encoded-imm-words))
 			encoded-imm-words))
-	   (imm-bytes (ash imm-words 2))
-	   (other-words (- function-size imm-words)))
-      (assert (= other-words (1- (uvsize f))))
-      (fasl-out-opcode $fasl-clfun f)
-      (fasl-out-count function-size)
-      (fasl-out-count imm-words)
-      (fasl-out-ivect code 0 imm-bytes)
-      (do ((i 1 (1+ i))
-	   (n (uvsize f)))
-	  ((= i n))
-	(declare (fixnum i n))
-	(fasl-dump-form (%svref f i)))))))
+	 (imm-bytes (ash imm-words 2))
+	 (other-words (- function-size imm-words)))
+    (assert (= other-words (1- (uvsize f))))
+    (fasl-out-opcode $fasl-clfun f)
+    (fasl-out-count function-size)
+    (fasl-out-count imm-words)
+    (fasl-out-ivect code 0 imm-bytes)
+    (do ((i 1 (1+ i))
+	 (n (uvsize f)))
+	((= i n))
+      (declare (fixnum i n))
+      (fasl-dump-form (%svref f i)))))
 
 (defun fasl-dump-codevector (c)
   (if (and (not (eq *fasl-backend* *host-backend*))

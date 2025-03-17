@@ -4283,8 +4283,6 @@
 
 (define-x8664-subprim-call-vinsn (setqsym) .SPsetqsym)
 
-
-
 (define-x8664-subprim-call-vinsn (makeu64) .SPmakeu64)
 
 (define-x8664-subprim-call-vinsn (makes64) .SPmakes64)

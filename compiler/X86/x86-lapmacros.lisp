@@ -568,6 +568,15 @@
    (:x8664
     `(movq (@ ',constant (% ,fn)) (% ,dest)))))
 
+(defx86lapmacro recover-fn-from-rip ()
+  (target-arch-case
+   (:x8632
+    (let* ((next (gensym)))
+      `(progn
+         (lea (@ (- (:^ ,next)) (% rip)) (% fn))
+         ,next)))
+   (:x8664 `(progn))))
+
 ;;; call symbol named NAME, setting nargs to NARGS.  Do the TRA
 ;;; hair.   Args should already be in arg regs, and we expect
 ;;; to return a single value.
