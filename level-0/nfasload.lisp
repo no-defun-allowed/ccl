@@ -229,14 +229,19 @@
     (dotimes (i len new)
       (setf (schar new i) (schar str i)))))
 
+(defvar *fasl-dispatch-depth* 0)
 (defun %fasl-dispatch (s op)
   (declare (fixnum op)) 
   (setf (faslstate.faslepush s) (logbitp $fasl-epush-bit op))
   #+debug
-  (format t "~& dispatch: op = ~d at ~x" (logand op (lognot (ash 1 $fasl-epush-bit)))
+  (format t "~& dispatch ~d: op = ~3d ~a at ~x"
+          *fasl-dispatch-depth*
+          (logand op (lognot (ash 1 $fasl-epush-bit)))
+          (aref *fasl-op-names* (logand op (lognot (ash 1 $fasl-epush-bit))))
           (1- (%fasl-get-file-pos s)))
-  (funcall (svref (faslstate.fasldispatch s) (logand op (lognot (ash 1 $fasl-epush-bit)))) 
-           s))
+  (let ((*fasl-dispatch-depth* (1+ *fasl-dispatch-depth*)))
+    (funcall (svref (faslstate.fasldispatch s) (logand op (lognot (ash 1 $fasl-epush-bit))))
+             s)))
 
 (defun %fasl-expr (s)
   (%fasl-dispatch s (%fasl-read-byte s))

@@ -83,7 +83,7 @@
 (defparameter *xload-static-cons-space-address* nil)
 (defparameter *xload-static-cons-space-size* 0)
 (defparameter *xload-code-space-address* nil)
-(defparameter *xload-code-space-size* 0)
+(defparameter *xload-code-space-size* (ash 1 20))
 
 (defstruct backend-xload-info
   name
@@ -110,12 +110,15 @@
           (backend-xload-info-purespace-reserve
            *xload-target-backend*))
     (setq *xload-readonly-space-address* *xload-image-base-address*)
-    (setq *xload-dynamic-space-address*
+    (setq *xload-code-space-address*
           (+ *xload-image-base-address*
              *xload-purespace-reserve*))
+    (setq *xload-dynamic-space-address*
+          (+ *xload-image-base-address*
+             *xload-purespace-reserve*
+             *xload-code-space-size*))
     (setq *xload-managed-static-space-address* *xload-dynamic-space-address*
-          *xload-static-cons-space-address* *xload-dynamic-space-address*
-          *xload-code-space-address* *xload-dynamic-space-address*)
+          *xload-static-cons-space-address* *xload-dynamic-space-address*)
     (setq *xload-static-space-address*
           (backend-xload-info-static-space-address
            *xload-target-backend*))
