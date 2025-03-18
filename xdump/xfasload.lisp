@@ -1604,12 +1604,15 @@
   (let* ((element-count (%fasl-read-count s))
          (subtag (xload-target-subtype :code-vector)))
     (multiple-value-bind (vector v o)
-                         (xload-make-ivector 
-                          (if (not *xload-pure-code-p*)
-                            *xload-dynamic-space* 
-                            *xload-readonly-space*)
-                          subtag 
-                          element-count)
+        (xload-make-ivector
+         (target-arch-case
+          (:x8664 *xload-code-space*)
+          (otherwise
+           (if (not *xload-pure-code-p*)
+               *xload-dynamic-space* 
+               *xload-readonly-space*)))
+         subtag
+         element-count)
       (%epushval s vector)
       (%fasl-read-n-bytes s v (+ o
                                  *xload-target-misc-data-offset*)
@@ -1662,7 +1665,12 @@
   (xfasl-read-gvector s (xload-target-subtype :simple-vector)))
 
 (defxloadfaslop $fasl-function (s)
-  (xfasl-read-gvector s (xload-target-subtype :function)))
+  (xfasl-read-gvector s (xload-target-subtype :function))
+  (target-arch-case
+   (:x8664
+    (setf (faslstate.faslval s)
+          (logior (logandc2 (faslstate.faslval s) *xload-target-fulltagmask*)
+                  *xload-target-fulltag-for-functions*)))))
 
 (defxloadfaslop $fasl-istruct (s)
   (xfasl-read-gvector s (xload-target-subtype :istruct)))

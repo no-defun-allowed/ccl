@@ -238,6 +238,7 @@ define(`nargs',`imm2_l')
 define(`ra0',`temp2')        
 						
 define(`xfn',`temp1')
+define(`nfn',`temp1')
 
 define(`allocptr',`temp0')		
 define(`stack_temp',`mm7')

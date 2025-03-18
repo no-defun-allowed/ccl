@@ -451,10 +451,10 @@ define(`do_funcall',`
 	__(andb $fulltagmask,%imm0_b)
 	__(cmpb $fulltag_symbol,%imm0_b)
 	/* %fname == %temp0   */
-	__(cmovgq %temp0,%fn)
+	__(cmovgq %temp0,%nfn)
 	jl macro_label(bad)
-	__(cmoveq symbol.fcell(%fname),%fn)
-	__(jmp *%fn)
+	__(cmoveq symbol.fcell(%fname),%nfn)
+	__(jmp function.entrypoint(%nfn))
 macro_label(bad):		
 	__(uuo_error_not_callable)
 ')')
