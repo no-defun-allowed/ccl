@@ -150,6 +150,9 @@
             (image-write-natural 0 f))) ; static dnodes.
         (dolist (sect spaces)
           (image-align-output-position f)
+          (format *debug-io* "~&;Writing space [~X,~X)"
+                  (xload-space-vaddr sect)
+                  (+ (xload-space-lowptr sect) (xload-space-vaddr sect)))
           (stream-write-ivector f
                                 (xload-space-data sect)
                                 0

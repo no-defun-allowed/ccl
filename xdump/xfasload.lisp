@@ -84,6 +84,7 @@
 (defparameter *xload-static-cons-space-size* 0)
 (defparameter *xload-code-space-address* nil)
 (defparameter *xload-code-space-size* (ash 1 20))
+(defparameter *xload-code-space-reserve* (ash 1 30))
 
 (defstruct backend-xload-info
   name
@@ -116,7 +117,7 @@
     (setq *xload-dynamic-space-address*
           (+ *xload-image-base-address*
              *xload-purespace-reserve*
-             *xload-code-space-size*))
+             *xload-code-space-reserve*))
     (setq *xload-managed-static-space-address* *xload-dynamic-space-address*
           *xload-static-cons-space-address* *xload-dynamic-space-address*)
     (setq *xload-static-space-address*
@@ -1129,7 +1130,8 @@
     (let* ((toplevel (xload-symbol-value (xload-lookup-symbol '%toplevel-function%))))      
       (when (or (= toplevel *xload-target-unbound-marker*)
                 (= toplevel *xload-target-nil*))
-	(warn "~S not set in loading ~S ." '%toplevel-function pathnames)))
+	(warn "~S not set in loading ~S ." '%toplevel-function pathnames))
+      (format *debug-io* "~&;Toplevel = ~X" toplevel))
     (setf (xload-symbol-value (xload-copy-symbol '*xload-cold-load-functions*))
           (xload-save-list (setq *xload-cold-load-functions*
                                  (nreverse *xload-cold-load-functions*))))
@@ -1169,10 +1171,10 @@
 		    heap-start
 		    (list *xload-static-space*
 			  *xload-readonly-space*
+                          *xload-code-space*
 			  *xload-dynamic-space*
                           *xload-managed-static-space*
-                          *xload-static-cons-space*
-                          *xload-code-space*)))
+                          *xload-static-cons-space*)))
 		    
 
 
@@ -1665,12 +1667,13 @@
   (xfasl-read-gvector s (xload-target-subtype :simple-vector)))
 
 (defxloadfaslop $fasl-function (s)
-  (xfasl-read-gvector s (xload-target-subtype :function))
-  (target-arch-case
-   (:x8664
-    (setf (faslstate.faslval s)
-          (logior (logandc2 (faslstate.faslval s) *xload-target-fulltagmask*)
-                  *xload-target-fulltag-for-functions*)))))
+  (let ((f (xfasl-read-gvector s (xload-target-subtype :function))))
+    (target-arch-case
+     (:x8664
+      (setf (faslstate.faslval s)
+            (logior (logandc2 f *xload-target-fulltagmask*)
+                    *xload-target-fulltag-for-functions*)))
+     (otherwise f))))
 
 (defxloadfaslop $fasl-istruct (s)
   (xfasl-read-gvector s (xload-target-subtype :istruct)))
