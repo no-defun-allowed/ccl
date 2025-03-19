@@ -78,17 +78,15 @@ print_lisp_frame(lisp_frame *frame)
     return;
   }
 #else
-  if (tag_of(pc) == tag_tra) {
-    if ((*((unsigned short *)pc) == RECOVER_FN_FROM_RIP_WORD0) &&
-        (*((unsigned char *)(pc+2)) == RECOVER_FN_FROM_RIP_BYTE2)) {
-      int sdisp = (*(int *) (pc+3));
-      fun = RECOVER_FN_FROM_RIP_LENGTH+pc+sdisp;
+  if (pc >= (LispObj)code_area->low && pc < (LispObj)code_area->high) {
+    /* The next word we push is the old value of FN. */
+    /* XXX: Of course this is off by one, but it is at least *a* function involved. */
+    LispObj fun = frame->xtra;
+    if (fun) {
+      LispObj *base = (LispObj*)ptr_from_lispobj(untag(fun));
+      delta = pc - base[1];
     }
-    if (fulltag_of(fun) == fulltag_function) {
-      delta = pc - fun;
-      Dprintf("(#x%016lX) #x%016lX : %s + %d", frame, pc, print_lisp_object(fun), delta);
-      return;
-    }
+    Dprintf("(#x%016lX) #x%016lX : %s + %d", frame, pc, print_lisp_object(fun), delta);
   }
   if (pc == 0) {
     natural rpc = pc_from_xcf((xcf *)frame);
@@ -119,7 +117,7 @@ lisp_frame_p(lisp_frame *f)
 #ifdef X8632
     if (fulltag_of(ra) == fulltag_tra) {
 #else
-    if (tag_of(ra) == tag_tra) {
+    if (ra >= (LispObj)code_area->low && ra < (LispObj)code_area->high) {
 #endif
       return true;
     } else if ((ra == lisp_global(LEXPR_RETURN)) ||
@@ -143,9 +141,10 @@ walk_stack_frames(lisp_frame *start, lisp_frame *end)
       print_lisp_frame(start);
     } else {
       if (start->backlink) {
-        fprintf(dbgout, "Bogus frame %lx\n", start);
+        fprintf(dbgout, "Bogus frame %lx -> %lx\n", start, start->backlink);
+        /* Try to keep scanning if we have at least progressed up the stack. */
+        if (start->backlink > end || start->backlink < start) return;
       }
-      return;
     }
     
     next = start->backlink;
