@@ -70,7 +70,7 @@
 	fname, next_method_context: 	temp0
         nargs:				imm2
         ra0:				temp2
-        xfn:				temp1
+        nfn:				temp1
         allocptr:			temp0
         stack_temp:			mm7	
 	

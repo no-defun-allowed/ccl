@@ -335,13 +335,13 @@ load_image_section(int fd, openmcl_image_section_header *sect)
   case AREA_CODE:
 #define CODE_AREA_SIZE (1 << 30UL)
     addr = ReserveMemory(CODE_AREA_SIZE);
+    fprintf(stderr, "allocated code at %p\n", addr);
     if (!addr) Bug(NULL, "failed to allocate %ld bytes for code area", CODE_AREA_SIZE);
     /* No need to relocate, code vectors are flat */
     if (mem_size)
       if (!MapFile(addr, pos, align_to_power_of_2(mem_size, log2_page_size), MEMPROTECT_RWX, fd))
         Bug(NULL, "failed to map in code space");
     UnProtectMemory(addr, CODE_AREA_SIZE);
-    fprintf(stderr, "allocated code at %p\n", addr);
     a = new_area(addr, addr + CODE_AREA_SIZE, AREA_CODE);
     a->active = a->low + mem_size;
     sect->area = a;
@@ -352,6 +352,7 @@ load_image_section(int fd, openmcl_image_section_header *sect)
     Bug(NULL, "Unknown area code %d", sect->code);
   }
   LSEEK(fd, pos+advance, SEEK_SET);
+  fprintf(stderr, "area %d at %p has %d bytes\n", sect->code, a->low, mem_size);
 }
 
 LispObj
