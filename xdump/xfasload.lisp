@@ -1670,6 +1670,10 @@
   (let ((f (xfasl-read-gvector s (xload-target-subtype :function))))
     (target-arch-case
      (:x8664
+      ;; Re-tag the entrypoint.
+      (setf (xload-%svref f 0)
+            (logior (logandc2 (xload-%svref f 0) *xload-target-fulltagmask*)
+                    *xload-target-fulltag-for-functions*))
       (setf (faslstate.faslval s)
             (logior (logandc2 f *xload-target-fulltagmask*)
                     *xload-target-fulltag-for-functions*)))
