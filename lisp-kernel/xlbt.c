@@ -44,6 +44,10 @@ pc_from_xcf(xcf *xcf)
   return 0;
 }
 
+#ifdef X8664
+static LispObj last_seen_fn;
+#endif
+
 void
 print_lisp_frame(lisp_frame *frame)
 {
@@ -80,8 +84,8 @@ print_lisp_frame(lisp_frame *frame)
 #else
   if (pc >= (LispObj)code_area->low && pc < (LispObj)code_area->high) {
     /* The next word we push is the old value of FN. */
-    /* XXX: Of course this is off by one, but it is at least *a* function involved. */
-    LispObj fun = frame->xtra;
+    LispObj fun = last_seen_fn;
+    last_seen_fn = frame->xtra;
     if (fun) {
       LispObj *base = (LispObj*)ptr_from_lispobj(untag(fun));
       delta = pc - base[1];
@@ -206,7 +210,6 @@ plbt_sp(LispObj current_fp)
       signal(SIGSEGV, SIG_DFL);
     }
 #endif
-
     walk_stack_frames((lisp_frame *) ptr_from_lispobj(current_fp), (lisp_frame *) (vs_area->high));
     /*      walk_other_areas();*/
   }
@@ -216,5 +219,8 @@ plbt_sp(LispObj current_fp)
 void
 plbt(ExceptionInformation *xp)
 {
+#ifdef X8664
+  last_seen_fn = xpGPR(xp, Ifn);
+#endif
   plbt_sp(xpGPR(xp, Ifp));
 }
