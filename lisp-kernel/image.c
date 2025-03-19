@@ -204,7 +204,7 @@ void
 load_image_section(int fd, openmcl_image_section_header *sect)
 {
   extern area* allocate_dynamic_area(natural);
-  extern LogicalAddress ReserveMemory(natural);
+  extern void *allocate_from_reserved_area(natural);
   off_t
     pos = seek_to_next_page(fd), advance;
   natural
@@ -334,8 +334,7 @@ load_image_section(int fd, openmcl_image_section_header *sect)
 
   case AREA_CODE:
 #define CODE_AREA_SIZE (1 << 30UL)
-    addr = ReserveMemory(CODE_AREA_SIZE);
-    fprintf(stderr, "allocated code at %p\n", addr);
+    addr = allocate_from_reserved_area(CODE_AREA_SIZE);
     if (!addr) Bug(NULL, "failed to allocate %ld bytes for code area", CODE_AREA_SIZE);
     /* No need to relocate, code vectors are flat */
     if (mem_size)
