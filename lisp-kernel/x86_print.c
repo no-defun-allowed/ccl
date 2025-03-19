@@ -398,26 +398,7 @@ void
 sprint_tra(LispObj o, int depth)
 {
 #ifdef X8664
-  signed sdisp;
-  unsigned disp = 0;
-  LispObj f = 0;
-
-  if ((*((unsigned short *)o) == RECOVER_FN_FROM_RIP_WORD0) &&
-      (*((unsigned char *)(o+2)) == RECOVER_FN_FROM_RIP_BYTE2)) {
-    sdisp = (*(int *) (o+3));
-    f = RECOVER_FN_FROM_RIP_LENGTH+o+sdisp;
-    disp = o-f;
-  }
-
-  if (fulltag_of(f) == fulltag_function) {
-    add_c_string("tagged return address: ");
-    sprint_function(f, depth);
-    add_c_string(" + ");
-    sprint_unsigned_decimal(disp);
-  } else {
-    add_c_string("(tra ?) : ");
-    sprint_unsigned_hex(o);
-  }
+  add_c_string("(tra ?) : ");
 #else
   LispObj f = 0;
   unsigned disp = 0;

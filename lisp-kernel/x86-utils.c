@@ -22,15 +22,7 @@ tra_function(LispObj tra)
 {
   LispObj f = 0;
 
-#ifdef X8664
-  if (tag_of(tra) == tag_tra) {
-    if ((*((unsigned short *)tra) == RECOVER_FN_FROM_RIP_WORD0) &&
-        (*((unsigned char *)(tra + 2)) == RECOVER_FN_FROM_RIP_BYTE2)) {
-      int sdisp = (*(int *)(tra + RECOVER_FN_FROM_RIP_DISP_OFFSET));
-      f = RECOVER_FN_FROM_RIP_LENGTH + tra + sdisp;
-    }
-  }
-#else
+#ifdef X8632
   if (fulltag_of(tra) == fulltag_tra) {
     if (*((unsigned char *)tra) == RECOVER_FN_OPCODE) {
       natural n = *((natural *)(tra + 1));

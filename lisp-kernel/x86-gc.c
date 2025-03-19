@@ -127,23 +127,6 @@ check_node(LispObj n)
       n = fun;
     }
 #endif
-#ifdef X8664
-    {
-      int disp = 0;
-      LispObj m = n;
-
-      if ((*((unsigned short *)n) == RECOVER_FN_FROM_RIP_WORD0) &&
-          (*((unsigned char *)(n+2)) == RECOVER_FN_FROM_RIP_BYTE2)) {
-        disp = (*(int *) (n+3));
-        n = RECOVER_FN_FROM_RIP_LENGTH+m+disp;
-      }
-      if ((disp == 0) ||
-          (fulltag_of(n) != fulltag_function) ||
-          (heap_area_containing((BytePtr)ptr_from_lispobj(n)) != a)) {
-        Bug(NULL, "TRA at 0x" LISP " has bad displacement %d\n", n, disp);
-      }
-    }
-#endif
     /* Otherwise, fall through and check the header on the function
        that the tra references */
 
@@ -488,20 +471,6 @@ mark_root(LispObj n)
       return;
   }
 #endif
-#ifdef X8664
-  if (tag_of(n) == tag_tra) {
-    if ((*((unsigned short *)n) == RECOVER_FN_FROM_RIP_WORD0) &&
-        (*((unsigned char *)(n+2)) == RECOVER_FN_FROM_RIP_BYTE2)) {
-      int sdisp = (*(int *) (n+3));
-      n = RECOVER_FN_FROM_RIP_LENGTH+n+sdisp;
-      tag_n = fulltag_function;
-      dnode = gc_area_dnode(n);
-    }
-    else {
-      return;
-    }
-  }
-#endif
 
   set_bits_vars(GCmarkbits,dnode,bitsp,bits,mask);
   if (bits & mask) {
@@ -695,19 +664,6 @@ rmark(LispObj n)
     if (*(unsigned char *)n == RECOVER_FN_OPCODE) {
       n = *(LispObj *)(n + 1);
       tag_n = fulltag_misc;
-      dnode = gc_area_dnode(n);
-    } else {
-      return;
-    }
-  }
-#endif
-#ifdef X8664
-  if (tag_of(n) == tag_tra) {
-    if ((*((unsigned short *)n) == RECOVER_FN_FROM_RIP_WORD0) &&
-        (*((unsigned char *)(n+2)) == RECOVER_FN_FROM_RIP_BYTE2)) {
-      int sdisp = (*(int *) (n+3));
-      n = RECOVER_FN_FROM_RIP_LENGTH+n+sdisp;
-      tag_n = fulltag_function;
       dnode = gc_area_dnode(n);
     } else {
       return;
@@ -997,27 +953,12 @@ rmark(LispObj n)
 
   MarkVector:
 #ifdef X8664
-    if ((tag_n == fulltag_tra_0) ||
-        (tag_n == fulltag_tra_1)) {
-      int disp = (*(int *) (n+3)) + RECOVER_FN_FROM_RIP_LENGTH;
-
-      base = (LispObj *) (untag(n-disp));
-      header = *((natural *) base);
-      subtag = header_subtag(header);
+    base = (LispObj *) ptr_from_lispobj(untag(this));
+    header = *((natural *) base);
+    subtag = header_subtag(header);
+    if (subtag == subtag_function) {
       boundary = base + (int)(base[1]);
       (((int *)boundary)[1]) = (int)(this-((LispObj)boundary));
-      this = (LispObj)(base)+fulltag_function;
-      /* Need to set the initial markbit here */
-      dnode = gc_area_dnode(this);
-      set_bit(markbits,dnode);
-    } else {
-      base = (LispObj *) ptr_from_lispobj(untag(this));
-      header = *((natural *) base);
-      subtag = header_subtag(header);
-      if (subtag == subtag_function) {
-        boundary = base + (int)(base[1]);
-        (((int *)boundary)[1]) = (int)(this-((LispObj)boundary));
-      }
     }
     element_count = header_element_count(header);
     tag_n = fulltag_of(header);
@@ -1461,25 +1402,10 @@ mark_xp(ExceptionInformation *xp)
   mark_root(regs[Itemp5]);
   mark_root(regs[Itemp6]);
   mark_root(regs[Ifn]);
- 
-  /* If the RIP isn't pointing into a marked function,
-     we can -maybe- recover from that if it's tagged as
-     a TRA. */
-  rip = regs[Iip];
-  dnode = gc_area_dnode(rip);
-  if ((dnode < GCndnodes_in_area) &&
-      (! ref_bit(GCmarkbits,dnode))) {
-    if (tag_of(rip) == tag_tra) {
-      mark_root(rip);
-    } else if ((fulltag_of(rip) == fulltag_function) &&
-               (*((unsigned short *)rip) == RECOVER_FN_FROM_RIP_WORD0) &&
-               (*((unsigned char *)(rip+2)) == RECOVER_FN_FROM_RIP_BYTE2) &&
-               ((*(int *) (rip+3))) == -RECOVER_FN_FROM_RIP_LENGTH) {
-      mark_root(rip);
-    } else {
-      Bug(NULL, "Can't find function for rip 0x%16lx",rip);
-    }
-  }
+
+  /* The RIP points into the code area, for which we can
+     recover the base of a code vector by heap structure
+     (when we get around to GCing code). */
 }
 #else
 void
