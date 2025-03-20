@@ -573,19 +573,22 @@
   ((:not (:and  (:pred < const 128) (:pred >= const -128)))
    (pushq (:$l const))))
 
-
+(defun vframe-offset (frame-offset)
+  ;; FN gets the second word, so every other value is off by one.
+  ;; XXX: what's the first word?
+  (- (+ frame-offset (* 2 x8664::word-size-in-bytes))))
 
 (define-x8664-vinsn (vframe-load :vsp :ref :needs-frame-pointer)
     (((dest :lisp))
      ((frame-offset :stack-offset)
       (cur-vsp :stack-offset)))
-  (movq (:@ (:apply - (:apply + frame-offset x8664::word-size-in-bytes)) (:%q x8664::rbp)) (:%q dest)))
+  (movq (:@ (:apply vframe-offset frame-offset) (:%q x8664::rbp)) (:%q dest)))
 
 (define-x8664-vinsn (compare-vframe-offset-to-nil :vsp :ref :needs-frame-pointer)
     (()
      ((frame-offset :u16const)
       (cur-vsp :u16const)))
-  (cmpb (:$b x8664::fulltag-nil) (:@ (:apply - (:apply + frame-offset x8664::word-size-in-bytes)) (:%q x8664::rbp))))
+  (cmpb (:$b x8664::fulltag-nil) (:@ (:apply vframe-offset frame-offset) (:%q x8664::rbp))))
 
 (define-x8664-vinsn (compare-vframe-offset-to-fixnum :vsp :ref :needs-frame-pointer)
     (()
@@ -593,9 +596,9 @@
       (cur-vsp :stack-offset)
       (fixval :s32const)))
   ((:and (:pred < fixval 128) (:pred >= fixval -128))
-   (cmpq (:$b fixval) (:@ (:apply - (:apply + frame-offset x8664::word-size-in-bytes)) (:%q x8664::rbp))))
+   (cmpq (:$b fixval) (:@ (:apply vframe-offset frame-offset) (:%q x8664::rbp))))
   ((:not (:and (:pred < fixval 128) (:pred >= fixval -128)))
-   (cmpq (:$l fixval) (:@ (:apply - (:apply + frame-offset x8664::word-size-in-bytes)) (:%q x8664::rbp)))))
+   (cmpq (:$l fixval) (:@ (:apply vframe-offset frame-offset) (:%q x8664::rbp)))))
 
 
 (define-x8664-vinsn (add-constant-to-vframe-offset :vsp :ref :set :needs-frame-pointer)
@@ -604,9 +607,9 @@
       (cur-vsp :stack-offset)
       (constant :s32const)))
   ((:and (:pred < constant 128) (:pred >= constant -128))
-   (addq (:$b constant) (:@ (:apply - (:apply + frame-offset x8664::word-size-in-bytes)) (:%q x8664::rbp))))
+   (addq (:$b constant) (:@ (:apply vframe-offset frame-offset) (:%q x8664::rbp))))
   ((:not (:and (:pred < constant 128) (:pred >= constant -128)))
-   (addq (:$l constant) (:@ (:apply - (:apply + frame-offset x8664::word-size-in-bytes)) (:%q x8664::rbp)))))
+   (addq (:$l constant) (:@ (:apply vframe-offset frame-offset) (:%q x8664::rbp)))))
   
 
 (define-x8664-vinsn compare-value-cell-to-nil (()
@@ -619,14 +622,14 @@
     (()
      ((frame-offset :stack-offset)
       (cur-vsp :stack-offset)))
-  (pushq (:@ (:apply - (:apply + frame-offset x8664::word-size-in-bytes)) (:%q x8664::rbp))))
+  (pushq (:@ (:apply vframe-offset frame-offset) (:%q x8664::rbp))))
 
 (define-x8664-vinsn (vframe-store :vsp :set :needs-frame-pointer)
     (()
      ((src :lisp)
       (frame-offset :stack-offset)
       (cur-vsp :stack-offset)))
-  (movq (:%q src) (:@ (:apply - (:apply + frame-offset x8664::word-size-in-bytes)) (:%q x8664::rbp))))
+  (movq (:%q src) (:@ (:apply vframe-offset frame-offset) (:%q x8664::rbp))))
 
 
         
