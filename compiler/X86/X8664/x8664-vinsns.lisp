@@ -640,7 +640,8 @@
 (define-x8664-vinsn (restore-full-lisp-context :lispcontext :pop :vsp :uses-frame-pointer)
     (()
      ())
-  (popq (:%q x8664::fn))
+  ;; How do I restore FN? This doesn't work for when arguments are passed on the stack.
+  (movq (:@ (:apply - x8664::word-size-in-bytes) (:%q x8664::rbp)) (:%q x8664::fn))
   (movq (:%q x8664::rbp) (:%q x8664::rsp))
   (popq (:%q x8664::rbp)))
 
