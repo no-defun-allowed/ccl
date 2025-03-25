@@ -552,7 +552,7 @@
   (movq (:%q x8664::rbp) (:@ (:apply caller-reserved-frame-size nbytes-pushed) (:%q x8664::rsp)))
   (leaq (:@ (:apply caller-reserved-frame-size nbytes-pushed) (:%q x8664::rsp)) (:%q x8664::rbp))
   (popq  (:@ x8664::node-size (:%q x8664::rbp)))
-  (pushq (:%q x8664::fn))
+  (movq (:%q x8664::fn) (:@ (:apply - x8664::node-size) (:%q x8664::rbp)))
   (movq (:%q x8664::nfn) (:%q x8664::fn)))
 
 (define-x8664-vinsn (save-lisp-context-variable-arg-count :needs-frame-pointer) (()
