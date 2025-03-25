@@ -520,11 +520,37 @@
   (pushq (:%q x8664::fn))
   (movq (:%q x8664::nfn) (:%q x8664::fn)))
 
+;;; When we call a function with more arguments than registers,
+;;; the caller pushes space for the frame of the callee before pushing
+;;; arguments. Then the callee initialises that frame, enclosing the arguments
+;;; in the frame.
+;;;
+;;; The caller sets up the stack (just after the CALL) as:
+;;;   reserved [for return address]
+;;;   reserved [for old RBP]
+;;;   reserved [for old FN]
+;;;   arg_0
+;;;   ...
+;;;   arg_n
+;;;   return address          <- RSP
+;;; and the callee needs to shuffle to produce:
+;;;   return address
+;;;   old RBP                 <- RBP
+;;;   old FN
+;;;   arg_0
+;;;   ...
+;;;   arg_n                   <- RSP
+;;;
+;;; In the case of a tail-call this is all moot and the callee just
+;;; clobbers the frame of the caller entirely.
+
+(defun caller-reserved-frame-size (nbytes-pushed)
+  (+ nbytes-pushed (* 2 x8664::node-size)))
 
 (define-x8664-vinsn (save-lisp-context-offset :needs-frame-pointer) (()
 					      ((nbytes-pushed :s32const)))
-  (movq (:%q x8664::rbp) (:@ (:apply + nbytes-pushed x8664::node-size) (:%q x8664::rsp)))
-  (leaq (:@ (:apply + nbytes-pushed x8664::node-size) (:%q x8664::rsp)) (:%q x8664::rbp))
+  (movq (:%q x8664::rbp) (:@ (:apply caller-reserved-frame-size nbytes-pushed) (:%q x8664::rsp)))
+  (leaq (:@ (:apply caller-reserved-frame-size nbytes-pushed) (:%q x8664::rsp)) (:%q x8664::rbp))
   (popq  (:@ x8664::node-size (:%q x8664::rbp)))
   (pushq (:%q x8664::fn))
   (movq (:%q x8664::nfn) (:%q x8664::fn)))
@@ -535,7 +561,7 @@
   (movl (:%l x8664::nargs) (:%l temp))
   (subq (:$b (* $numx8664argregs x8664::node-size)) (:%q temp))
   (jle :push)
-  (movq (:%q x8664::rbp) (:@ x8664::node-size (:%q x8664::rsp) (:%q temp)))
+  (movq (:%q x8664::rbp) (:@ (:apply * 2 x8664::node-size) (:%q x8664::rsp) (:%q temp)))
   (leaq (:@ x8664::node-size (:%q x8664::rsp) (:%q temp)) (:%q x8664::rbp))
   (popq  (:@ 8 (:%q x8664::rbp)))
   (jmp :done)
@@ -2181,11 +2207,12 @@
 (define-x8664-vinsn reserve-outgoing-frame (()
                                             ())
   (pushq (:$b x8664::reserved-frame-marker))
+  (pushq (:$b x8664::reserved-frame-marker))
   (pushq (:$b x8664::reserved-frame-marker)))
 
 (define-x8664-vinsn (pop-return-address-into-reserved-frame) (()
                                                               ())
-  (popq (:@ 16 (:%q x8664::rsp))))
+  (popq (:@ 24 (:%q x8664::rsp))))
   
 
 

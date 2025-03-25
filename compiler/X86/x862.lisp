@@ -3820,7 +3820,10 @@
       (x862-vpush-label seg (aref *backend-labels* mv-label)))
     (when (and (car args) (not suppress-frame-reservation))
       (! reserve-outgoing-frame)
-      (setq *x862-vstack* (+  *x862-vstack* (* 2 *x862-target-node-size*))))
+      (let ((offset (target-arch-case
+                     (:x8632 2)         ; return address, ebp
+                     (:x8664 3))))      ; return address, rbp, fn
+        (setq *x862-vstack* (+  *x862-vstack* (* offset *x862-target-node-size*)))))
     (x862-formlist seg (car args) (cadr args))))
 
 

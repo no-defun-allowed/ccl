@@ -11,6 +11,8 @@
         (require-module (intern (string n) :ccl) t))
       *module-provider-functions*)
 
+(setf ccl::*warn-if-redefine-kernel* nil)
+
 ;; Gotta patch ARM2-NLEXIT, we generate a huge VDIFF which
 ;; the assembler can't pack into one immediate.
 (defun arm2-nlexit (seg xfer &optional (nlevels 0))
