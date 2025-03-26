@@ -2417,7 +2417,7 @@ _spentry(keyword_bind)
 	/* (in %imm1), copy all pairs to the temp stack   */
 local_label(even):
 	/* Get the keyword vector into arg_x, and its length into arg_y.  */
-	__(movq function_data_offset(%fn),arg_x)
+	__(movq function_data_offset(%fn),%arg_x)
 	__(vector_length(%arg_x,%arg_y))
         __(testq %arg_y,%arg_y)
         __(jne 1f)
@@ -2538,8 +2538,8 @@ local_label(next_keyvect_entry):
 /*  constant in %fn), determine its length N, and push N	pairs of NILs.   */
 /* N could be 0 ...  */
 	
-local_label(no_keyword_values):		
-	__(movq function_data_offset(%fn),arg_x)
+local_label(no_keyword_values):
+	__(movq function_data_offset(%fn),%arg_x)
 	__(movl $nil_value,%arg_z_l)
 	__(vector_length(%arg_x,%arg_y))
 	__(jmp 1f)

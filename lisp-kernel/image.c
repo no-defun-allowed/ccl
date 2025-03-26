@@ -249,7 +249,7 @@ load_image_section(int fd, openmcl_image_section_header *sect)
     if (!MapFile(a->low,
 		 pos,
 		 align_to_power_of_2(mem_size,log2_page_size),
-		 MEMPROTECT_RWX,
+		 MEMPROTECT_RW,
 		 fd)) {
       return;
     }
@@ -457,7 +457,6 @@ load_openmcl_image(int fd, openmcl_image_file_header *h)
           relocate_area_contents(a, bias);
         }
 	resize_dynamic_heap(a->active, lisp_heap_gc_threshold);
-	xMakeDataExecutable(a->low, a->active - a->low);
 	break;
       }
     }

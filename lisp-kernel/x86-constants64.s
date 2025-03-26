@@ -530,7 +530,7 @@ misc_data_offset = misc_header_offset+node_size /* first word of data    */
 misc_subtag_offset = misc_header_offset       /* low byte of header   */
 misc_dfloat_offset = misc_data_offset		/* double-floats are doubleword-aligned   */
 function_header_offset = -fulltag_function
-function_data_offset = (function_header_offset+dnode_size)
+function_data_offset = function_header_offset+dnode_size
 
 define_subtag(single_float,fulltag_imm_0,0)
 
