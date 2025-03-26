@@ -562,14 +562,15 @@
   (subq (:$b (* $numx8664argregs x8664::node-size)) (:%q temp))
   (jle :push)
   (movq (:%q x8664::rbp) (:@ (:apply * 2 x8664::node-size) (:%q x8664::rsp) (:%q temp)))
-  (leaq (:@ x8664::node-size (:%q x8664::rsp) (:%q temp)) (:%q x8664::rbp))
-  (popq  (:@ 8 (:%q x8664::rbp)))
+  (leaq (:@ (:apply * 2 x8664::node-size) (:%q x8664::rsp) (:%q temp)) (:%q x8664::rbp))
+  (popq (:@ 8 (:%q x8664::rbp)))
+  (movq (:%q x8664::fn) (:@ (:apply - x8664::node-size) (:%q x8664::rbp)))
   (jmp :done)
   :push
   (pushq (:%q x8664::rbp))
   (movq (:%q x8664::rsp) (:%q x8664::rbp))
-  :done
   (pushq (:%q x8664::fn))
+  :done
   (movq (:%q x8664::nfn) (:%q x8664::fn)))
 
 ;;; We know that some args were pushed, but don't know how many were
