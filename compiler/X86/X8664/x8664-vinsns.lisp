@@ -2144,20 +2144,19 @@
 (define-x8664-vinsn (xpass-multiple-values-symbol :call  :extended-call :jumplr)
     (()
      ((lab :label))
-     ())                                                                
+     ())
   (pushq (:@ (:apply + (:apply target-nil-value) (x8664::%kernel-global 'x86::ret1valaddr))))
-  (jmp (:@ x8664::symbol.fcell (:% x8664::fname)))
-
-  )
+  (movq (:@ x8664::symbol.fcell (:% x8664::fname)) (:% x8664::nfn))
+  (jmp (:@ x8664::function.entrypoint (:% x8664::nfn))))
 
 (define-x8664-vinsn (pass-multiple-values-symbol :call  :extended-call :jumplr)
     (()
      ()
-     ())                                                                
+     ())
   (pushq (:@ (:apply + (:apply target-nil-value) (x8664::%kernel-global 'x86::ret1valaddr))))
   (jmp (:@ x8664::symbol.fcell (:% x8664::fname)))
-
-  )
+  (movq (:@ x8664::symbol.fcell (:% x8664::fname)) (:% x8664::nfn))
+  (jmp (:@ x8664::function.entrypoint (:% x8664::nfn))))
 
 ;;; It'd be good to have a variant that deals with a known function
 ;;; as well as this. 
@@ -2168,11 +2167,11 @@
   (movl (:%l x8664::temp0) (:%l tag))
   (andl (:$b x8664::fulltagmask) (:%l tag))
   (cmpl (:$b x8664::fulltag-symbol) (:%l tag))
-  (cmovgq (:%q x8664::temp0) (:%q x8664::fn))
+  (cmovgq (:%q x8664::temp0) (:%q x8664::nfn))
   (jl :bad)
-  (cmoveq (:@ x8664::symbol.fcell (:%q x8664::fname)) (:%q x8664::fn))
+  (cmoveq (:@ x8664::symbol.fcell (:%q x8664::fname)) (:%q x8664::nfn))
   (pushq (:@ (:apply + (:apply target-nil-value) (x8664::%kernel-global 'x86::ret1valaddr))))
-  (jmp (:%q x8664::fn))
+  (jmp (:@ x8664::function.entrypoint (:% x8664::nfn)))
 
   (:anchored-uuo-section :resume)
   :bad
@@ -2185,11 +2184,11 @@
   (movl (:%l x8664::temp0) (:%l tag))
   (andl (:$b x8664::fulltagmask) (:%l tag))
   (cmpl (:$b x8664::fulltag-symbol) (:%l tag))
-  (cmovgq (:%q x8664::temp0) (:%q x8664::fn))
+  (cmovgq (:%q x8664::temp0) (:%q x8664::nfn))
   (jl :bad)
-  (cmoveq (:@ x8664::symbol.fcell (:%q x8664::fname)) (:%q x8664::fn))
+  (cmoveq (:@ x8664::symbol.fcell (:%q x8664::fname)) (:%q x8664::nfn))
   (pushq (:@ (:apply + (:apply target-nil-value) (x8664::%kernel-global 'x86::ret1valaddr))))
-  (jmp (:%q x8664::fn))
+  (jmp (:@ x8664::function.entrypoint (:% x8664::nfn)))
 
   (:anchored-uuo-section :resume)
   :bad
