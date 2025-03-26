@@ -44,10 +44,6 @@ pc_from_xcf(xcf *xcf)
   return 0;
 }
 
-#ifdef X8664
-static LispObj last_seen_fn;
-#endif
-
 void
 print_lisp_frame(lisp_frame *frame)
 {
@@ -83,9 +79,7 @@ print_lisp_frame(lisp_frame *frame)
   }
 #else
   if (pc >= (LispObj)code_area->low && pc < (LispObj)code_area->high) {
-    /* The next word we push is the old value of FN. */
-    LispObj fun = last_seen_fn;
-    last_seen_fn = ((LispObj*)frame)[-1];
+    LispObj fun = ((LispObj*)frame)[-1];
     if (fun && fulltag_of(fun) == fulltag_function) {
       LispObj *base = (LispObj*)ptr_from_lispobj(untag(fun));
       delta = pc - base[1];
@@ -220,7 +214,10 @@ void
 plbt(ExceptionInformation *xp)
 {
 #ifdef X8664
-  last_seen_fn = xpGPR(xp, Ifn);
+  LispObj pc = xpGPR(xp, Iip), fun = xpGPR(xp, Ifn);
+  LispObj *base = (LispObj*)ptr_from_lispobj(untag(fun));
+  int delta = fulltag_of(fun) == fulltag_function ? pc - base[1] : 0;
+  Dprintf("(%18s) #x%016lX : %s + %d", "current frame", pc, print_lisp_object(fun), delta);
 #endif
   plbt_sp(xpGPR(xp, Ifp));
 }
