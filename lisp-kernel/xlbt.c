@@ -85,8 +85,8 @@ print_lisp_frame(lisp_frame *frame)
   if (pc >= (LispObj)code_area->low && pc < (LispObj)code_area->high) {
     /* The next word we push is the old value of FN. */
     LispObj fun = last_seen_fn;
-    last_seen_fn = frame->xtra;
-    if (fun) {
+    last_seen_fn = ((LispObj*)frame)[-1];
+    if (fun && fulltag_of(fun) == fulltag_function) {
       LispObj *base = (LispObj*)ptr_from_lispobj(untag(fun));
       delta = pc - base[1];
     }
