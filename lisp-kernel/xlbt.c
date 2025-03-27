@@ -214,10 +214,16 @@ void
 plbt(ExceptionInformation *xp)
 {
 #ifdef X8664
-  LispObj pc = xpGPR(xp, Iip), fun = xpGPR(xp, Ifn);
+  LispObj pc = xpGPR(xp, Iip), fun = xpGPR(xp, Ifn), nfn = xpGPR(xp, Itemp1);
   LispObj *base = (LispObj*)ptr_from_lispobj(untag(fun));
+  LispObj *nfn_base = (LispObj*)ptr_from_lispobj(untag(nfn));
   int delta = fulltag_of(fun) == fulltag_function ? pc - base[1] : 0;
-  Dprintf("(%18s) #x%016lX : %s + %d", "current frame", pc, print_lisp_object(fun), delta);
+  int nfn_delta = fulltag_of(nfn) == fulltag_function ? pc - nfn_base[1] : 0;
+  if (nfn_delta > 0 && nfn_delta < delta) {
+    Dprintf("(%18s) #x%016lX : %s + %d", "current frame/nfn", pc, print_lisp_object(nfn), nfn_delta);
+  } else {
+    Dprintf("(%18s) #x%016lX : %s + %d", "current frame/fn", pc, print_lisp_object(fun), delta);
+  }
 #endif
   plbt_sp(xpGPR(xp, Ifp));
 }
