@@ -100,27 +100,6 @@
             (popnlispareas)))
         vstack))))
 
-(defun target-xcompile-ccl (target &optional force)
-  (let* ((*target-backend* *host-backend*))
-    (require-update-modules *sysdef-modules* force)) ;in the host
-  (let* ((backend (or (find-backend target) *target-backend*))
-	 (arch (backend-target-arch-name backend)))
-    ;; NXENV won't compile if we don't have any vinsns handy.
-    (require-module 'x8664-vinsns t)
-    (target-compile-modules 'nxenv target force)
-    (target-compile-modules *compiler-modules* target force)
-    (target-compile-modules (target-compiler-modules arch) target force)
-    ;; l1-utils won't compile if we lack X86-LINUX64::EXPAND-FF-CALL.
-    (require-module 'ffi-linuxx8664 t)
-    ;; We also need x86-lapmacros earlier.
-    (require-module 'x86-lapmacros t)
-    (target-compile-modules (target-level-1-modules target) target force)
-    (target-compile-modules (target-lib-modules target) target force)
-    (target-compile-modules *sysdef-modules* target force)
-    (target-compile-modules (set-difference *aux-modules* '(core-files dominance)) target force)
-    (target-compile-modules *code-modules* target force)
-    (target-compile-modules (target-xdev-modules arch) target force)))
-
 (mapc #'require '(:x8664-arch :x8632-arch :x862 :x8664-backend :xfasload :x8664-vinsns))
 
 (in-package :cl-user)
