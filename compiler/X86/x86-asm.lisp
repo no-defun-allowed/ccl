@@ -491,6 +491,7 @@
            ;; RIP-relative.  Need a displacement if we don't already
            ;; have one.
            (setf (ldb modrm-rm-byte rm-byte) +no-base-register+)
+           (setf (ldb modrm-mod-byte rm-byte) 0)
            (setq memtype
                  (logior (encode-operand-type :disp32s)
                          (encode-operand-type :label)
