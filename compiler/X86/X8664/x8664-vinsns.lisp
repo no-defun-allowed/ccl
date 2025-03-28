@@ -2154,7 +2154,6 @@
      ()
      ())
   (pushq (:@ (:apply + (:apply target-nil-value) (x8664::%kernel-global 'x86::ret1valaddr))))
-  (jmp (:@ x8664::symbol.fcell (:% x8664::fname)))
   (movq (:@ x8664::symbol.fcell (:% x8664::fname)) (:% x8664::nfn))
   (jmp (:@ x8664::function.entrypoint (:% x8664::nfn))))
 

@@ -122,6 +122,9 @@
     (xdisassemble f)
     f))
 
+(defmacro xdefun (name lambda-list &body body)
+  `(xcompile '(lambda ,lambda-list (block ,name ,@body))))
+
 (let ((ccl::*target-backend* (ccl::find-backend :linuxx8664)))
   (require :x86-lapmacros))
 
