@@ -221,6 +221,7 @@ plbt(ExceptionInformation *xp)
   int nfn_delta = fulltag_of(nfn) == fulltag_function ? pc - nfn_base[1] : 0;
   if (nfn_delta > 0 && nfn_delta < delta) {
     Dprintf("(%18s) #x%016lX : %s + %d", "current frame/nfn", pc, print_lisp_object(nfn), nfn_delta);
+    Dprintf("(%18s) %18s : %s", "current frame/ fn", "", print_lisp_object(fun));
   } else {
     Dprintf("(%18s) #x%016lX : %s + %d", "current frame/fn", pc, print_lisp_object(fun), delta);
   }

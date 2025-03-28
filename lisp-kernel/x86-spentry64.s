@@ -1144,6 +1144,7 @@ C(nvalret):
 	__(testl %nargs,%nargs)
 	__(movl $nil_value,%arg_z_l)
 	__(cmovneq -node_size(%rsp,%nargs_q),%arg_z)
+        __(movq -node_size(%rbp),%fn)
 	__(leaveq)
         __(ret)
 
@@ -1152,6 +1153,7 @@ C(nvalret):
 1:	__(leaq 2*node_size(%rbp),%imm1)
 	__(movq (%imm1),%ra0)
 	__(addq $node_size,%imm1)
+        __(movq -node_size(%rbp),%fn)
 	__(movq 0(%rbp),%rbp)
 	__(leaq (%rsp,%nargs_q),%temp0)
 	__(xorl %imm0_l,%imm0_l)
