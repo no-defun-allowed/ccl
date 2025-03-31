@@ -227,7 +227,7 @@ load_image_section(int fd, openmcl_image_section_header *sect)
     a = new_area(pure_space_active, pure_space_limit, AREA_READONLY);
     pure_space_active += mem_size;
     a->active = pure_space_active;
-    sect->area = a;      
+    sect->area = a;
     break;
 
   case AREA_STATIC:
@@ -253,7 +253,7 @@ load_image_section(int fd, openmcl_image_section_header *sect)
 		 fd)) {
       return;
     }
-
+    print_all_symbols(a);
     a->static_dnodes = sect->static_dnodes;
     sect->area = a;
     break;
