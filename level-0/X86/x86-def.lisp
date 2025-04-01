@@ -44,18 +44,20 @@
   (box-fixnum imm0 arg_z)
   (single-value-return))
 
+;;; This used to need to skip over code words, now it only has to skip over
+;;; the entrypoint (and header) which is done by adding DNODE-SIZE
+;;; There isn't a hard need for this function as a result - UVREF of
+;;; FUNCTION-TO-FUNCTION-VECTOR would work just as well.
 (defx86lapfunction %nth-immediate ((fun arg_y) (n arg_z))
   (trap-unless-fulltag= fun x8664::fulltag-function)
-  (movl (@ (- x8664::node-size x8664::fulltag-function) (% fun)) (% imm0.l))
-  (lea (@ (% n) (% imm0) 8) (% imm0))
-  (movq (@ (- x8664::node-size x8664::fulltag-function) (% fun) (% imm0))
+  (movq (@ (- x8664::dnode-size x8664::fulltag-function) (% fun) (% n))
         (% arg_z))
   (single-value-return))
 
+;;; Much the same here.
 (defx86lapfunction %set-nth-immediate ((fun arg_x) (n arg_y) (new arg_z))
   (trap-unless-fulltag= fun x8664::fulltag-function)
-  (movl (@ (- x8664::node-size x8664::fulltag-function) (% fun)) (% imm0.l))
-  (lea (@ (% n) (% imm0) 8) (% arg_y))
+  (add ($ x8664::fixnum-one) (% n))
   (subb ($ (- x8664::fulltag-function x8664::fulltag-misc)) (%b arg_x))
   (jmp-subprim .SPgvset))
 
