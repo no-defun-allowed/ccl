@@ -667,7 +667,6 @@
 (define-x8664-vinsn (restore-full-lisp-context :lispcontext :pop :vsp :uses-frame-pointer)
     (()
      ())
-  ;; How do I restore FN? This doesn't work for when arguments are passed on the stack.
   (movq (:@ (:apply - x8664::word-size-in-bytes) (:%q x8664::rbp)) (:%q x8664::fn))
   (movq (:%q x8664::rbp) (:%q x8664::rsp))
   (popq (:%q x8664::rbp)))
@@ -5184,22 +5183,24 @@
 
 (define-x8664-vinsn (pop-outgoing-arg :needs-frame-pointer) (((n :u16const))
                                       ())
-  (popq (:@ (:apply * n (- x8664::node-size)) (:%q x8664::rbp))))
+  (popq (:@ (:apply * (:apply + 1 n) (- x8664::node-size)) (:%q x8664::rbp))))
 
 (define-x8664-vinsn (slide-nth-arg :needs-frame-pointer) (()
                                    ((n :u16const)
                                     (nstackargs :u16const)
                                     (temp :lisp)))
   (movq (:@ (:apply * (:apply - nstackargs (:apply + 1 n)) x8664::node-size) (:%q x8664::rsp)) (:%q temp))
-  (movq (:%q temp) (:@ (:apply * (:apply + n 1) (- x8664::node-size)) (:%q x8664::rbp))))
-                                   
+  (movq (:%q temp) (:@ (:apply * (:apply + n 2) (- x8664::node-size)) (:%q x8664::rbp))))
+
+(define-x8664-vinsn (restore-fn-from-rbp :needs-frame-pointer) (() ())
+  (movq (:@ (:apply - x8664::word-size-in-bytes) (:%q x8664::rbp)) (:%q x8664::fn)))
 
 (define-x8664-vinsn (set-tail-vsp :needs-frame-pointer) (((nargs :u16const))
                                   ())
   ((:pred = 0 nargs)
    (movq (:%q x8664::rbp) (:%q x8664::rsp)))
   ((:not (:pred = 0 nargs))
-   (leaq (:@ (:apply * nargs (- x8664::node-size)) (:%q x8664::rbp)) (:%q x8664::rsp))))
+   (leaq (:@ (:apply * (:apply + 1 nargs) (- x8664::node-size)) (:%q x8664::rbp)) (:%q x8664::rsp))))
 
 
 ;;; If we've used one of the fixed-stack-args !slideN vinsns above

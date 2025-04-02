@@ -3379,6 +3379,7 @@
            
            ;; We can probably do better than popping the nvrs
            ;; and then jumping to a point where we push them again ...
+           (target-arch-case (:x8664 (! restore-fn-from-rbp)))
            (! restore-nfp)
            (let* ((nstack (- nargs *x862-target-num-arg-regs*)))
              (declare (fixnum nstack))
@@ -3500,7 +3501,7 @@
                         (unless (or label-p a-reg) (x862-store-immediate seg func destreg))
                         (when label-p
                           (x862-copy-register seg *x862-temp0* *x862-fn*))
-
+                        (target-arch-case (:x8664 (! restore-fn-from-rbp)))
                         (cond ((or spread-p (null nargs))
                                (if symp
                                  (! tail-call-sym-gen)

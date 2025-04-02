@@ -411,7 +411,9 @@
    (:x8664
     `(progn
        (pushq (% rbp))
-       (movq (% rsp) (% rbp))))))
+       (movq (% rsp) (% rbp))
+       (pushq (% fn))
+       (movq (% nfn) (% fn))))))
 
 (defx86lapmacro save-stackargs-frame (nstackargs)
   (target-arch-case
@@ -457,8 +459,13 @@
 
 
 (defx86lapmacro restore-simple-frame ()
-  `(progn
-    (leave)))
+  (target-arch-case
+   (:x8632
+    `(leave))
+   (:x8664
+    `(progn
+       (movq (@ (- x8664::node-size) (% rbp)) (% fn))
+       (leave)))))
 
 (defx86lapmacro discard-reserved-frame ()
   (target-arch-case
