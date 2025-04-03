@@ -79,7 +79,7 @@ void print_all_symbols(area *a)
         natural elements = header_element_count(w0);
         LispObj lfbits = start[elements], name = start[elements - 1];
         LispObj code = start[1], len = header_element_count(header_of(code));
-        LispObj end = untag(code) + len;
+        LispObj end = untag(code) + node_size + len;
         char *str;
         char buffer[128];
         if ((lfbits & lfbits_noname_mask) == 0) {
