@@ -689,10 +689,10 @@
 #-x8632-target
 (deffaslop $fasl-code-vector (s)
   (let* ((element-count (%fasl-read-count s))
-         (size-in-bytes (* (target-arch-case (:x8664 1) (otherwise 4)) element-count))
-         (vector (target-arch-case
-                  (:x8664 (allocate-in-code-area element-count))
-                  (otherwise (allocate-typed-vector :code-vector element-count)))))
+         (size-in-bytes (* #+x8664-target 1 #-x8664-target 4 element-count))
+         (vector
+           #+x8664-target (allocate-in-code-area element-count)
+           #-x8664-target (allocate-typed-vector :code-vector element-count)))
     (declare (fixnum element-count size-in-bytes))
     (%epushval s vector)
     (%fasl-read-n-bytes s vector 0 size-in-bytes)
@@ -736,9 +736,9 @@
   (fasl-read-gvector s target::subtag-function)
   ;; Fix the tag on x8664; functions are tagged FULLTAG-MISC on other
   ;; architectures but they are FULLTAG-FUNCTION on x8664.
-  (target-arch-case
-   (:x8664 (setf (faslstate.faslval s)
-                 (%function-vector-to-function (faslstate.faslval s))))))
+  #+x8664-target
+  (setf (faslstate.faslval s)
+        (%function-vector-to-function (faslstate.faslval s))))
 
 (deffaslop $fasl-istruct (s)
   (fasl-read-gvector s target::subtag-istruct))
