@@ -472,7 +472,7 @@
    (:x8632
     `(add ($ '2) (% esp)))
    (:x8664
-    `(add ($ '2) (% rsp)))))
+    `(add ($ '3) (% rsp)))))
 
 ;;; Return to caller.
 (defx86lapmacro single-value-return (&optional (words-to-discard 0))
@@ -484,7 +484,11 @@
    (:x8664
     (if (zerop words-to-discard)
 	`(ret)
-	`(ret ($ ,(* x8664::node-size words-to-discard)))))))
+        ;; XXX: every user is now off by one since we grew the stack frame to store FN.
+        ;; Better than this kludge would be to have a constant e.g. FRAME-SIZE
+        ;; so that we can (SINGLE-VALUE-RETURN (+ FRAME-SIZE 2)) to pop two
+        ;; stack words or something.
+	`(ret ($ ,(* x8664::node-size (1+ words-to-discard))))))))
 
 (defun x86-subprim-offset (name)
   (let* ((info (find name (arch::target-subprims-table (backend-target-arch *target-backend*)) :test #'string-equal :key #'subprimitive-info-name))
