@@ -2454,7 +2454,7 @@
 (define-x8664-vinsn init-nclosure (()
                                    ((closure :lisp))
                                    ((imm0 :u64)))
-  (movq (:$q .SPcall-closure) (:%q imm0))
+  (movq (:@ .SPcall-closure) (:%q imm0))
   (movq (:%q imm0) (:@ (+ x8664::misc-data-offset 0) (:%q closure))))
 
 (define-x8664-vinsn finalize-closure (((closure :lisp))
