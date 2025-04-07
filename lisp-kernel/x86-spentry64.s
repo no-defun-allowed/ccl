@@ -5095,10 +5095,11 @@ _endsubp(aset3)
 	
 _spentry(call_closure)
         new_local_labels()
-        __(subq $fulltag_function-fulltag_misc,%fn)
-        __(vector_length(%fn,%imm0))
+        __(movq %nfn,%temp0) /* %nfn = %temp1 so we must save nfn */
+        __(subq $fulltag_function-fulltag_misc,%temp0)
+        __(vector_length(%temp0,%imm0))
 	
-        __(subq $6<<fixnumshift,%imm0)  /* imm0 = inherited arg count   */
+        __(subq $3<<fixnumshift,%imm0)  /* imm0 = inherited arg count   */
         __(lea (%nargs_q,%imm0),%imm1)
         __(cmpl $nargregs<<fixnumshift,%imm1_l)
         __(jna local_label(regs_only))
@@ -5132,9 +5133,9 @@ local_label(copy_already_loop):
         __(subq $fixnumone,%arg_y)
         __(jne local_label(copy_already_loop))
 	
-        __(movl $5<<fixnumshift,%imm1_l) /* skip code, new fn   */
+        __(movl $2<<fixnumshift,%imm1_l) /* skip code, new fn   */
 local_label(insert_loop):               
-        __(movq misc_data_offset(%fn,%imm1),%arg_z)
+        __(movq misc_data_offset(%temp0,%imm1),%arg_z)
         __(addq $node_size,%imm1)
         __(addl $fixnum_one,%nargs)
         __(subq $node_size,%arg_x)
@@ -5160,15 +5161,16 @@ local_label(no_insert):
         /* Reserve space for a stack frame   */
         __(push $reserved_frame_marker)
         __(push $reserved_frame_marker)
+        __(push $reserved_frame_marker)
 local_label(no_insert_no_frame):        
 	/* nargregs or fewer args were already vpushed.   */
 	/* if exactly nargregs, vpush remaining inherited vars.   */
         __(cmpl $nargregs<<fixnumshift,%nargs)
-        __(movl $5<<fixnumshift,%imm1_l) /* skip code, new fn   */
-        __(leaq 5<<fixnumshift(%imm0),%temp1)
+        __(movl $2<<fixnumshift,%imm1_l) /* skip code, new fn   */
+        __(leaq 2<<fixnumshift(%imm0),%temp1)
         __(jnz local_label(set_regs))
 local_label(vpush_remaining):  
-        __(push misc_data_offset(%fn,%imm1))
+        __(push misc_data_offset(%temp0,%imm1))
         __(addq $node_size,%imm1)
         __(addl $fixnumone,%nargs)
         __(subq $node_size,%imm0)
@@ -5181,7 +5183,7 @@ local_label(set_regs):
         __(jle local_label(set_y_z))
 local_label(set_arg_x): 
         __(subq $node_size,%temp1)
-        __(movq misc_data_offset(%fn,%temp1),%arg_x)
+        __(movq misc_data_offset(%temp0,%temp1),%arg_x)
         __(addl $fixnumone,%nargs)
         __(subq $fixnumone,%imm0)
         __(jne local_label(vpush_remaining))
@@ -5192,46 +5194,47 @@ local_label(set_y_z):
 	/* Set arg_y, maybe arg_x, preceding args   */
 local_label(set_arg_y): 
         __(subq $node_size,%temp1)
-        __(movq misc_data_offset(%fn,%temp1),%arg_y)
+        __(movq misc_data_offset(%temp0,%temp1),%arg_y)
         __(addl $fixnumone,%nargs)
         __(subq $fixnum_one,%imm0)
         __(jnz local_label(set_arg_x))
         __(jmp local_label(go))
 local_label(set_arg_z): 
         __(subq $node_size,%temp1)
-        __(movq misc_data_offset(%fn,%temp1),%arg_z)
+        __(movq misc_data_offset(%temp0,%temp1),%arg_z)
         __(addl $fixnumone,%nargs)
         __(subq $fixnum_one,%imm0)
         __(jne local_label(set_arg_y))
 local_label(go):        
-        __(movq misc_data_offset+(4*node_size)(%fn),%fn)
         __(push %ra0)
-        __(jmp *%fn)
+        __(movq misc_data_offset+node_size(%temp0),%nfn)
+        __(jmp function.entrypoint(%nfn))
 local_label(regs_only):
-        __(leaq 5<<fixnumshift(%imm0),%temp1)
+        __(leaq 2<<fixnumshift(%imm0),%temp1)
         __(testl %nargs,%nargs)
         __(jne local_label(some_args))
         __(cmpw $node_size,%imm0_w)
-        __(movq misc_data_offset-node_size(%fn,%temp1),%arg_z)
+        __(movq misc_data_offset-node_size(%temp0,%temp1),%arg_z)
         __(je local_label(rgo))
         __(cmpw $2*node_size,%imm0_w)
-        __(movq misc_data_offset-(node_size*2)(%fn,%temp1),%arg_y)
+        __(movq misc_data_offset-(node_size*2)(%temp0,%temp1),%arg_y)
         __(je local_label(rgo))
-        __(movq misc_data_offset-(node_size*3)(%fn,%temp1),%arg_x)
+        __(movq misc_data_offset-(node_size*3)(%temp0,%temp1),%arg_x)
 local_label(rgo):
         __(addw %imm0_w,%nargs_w)
-        __(jmp *misc_data_offset+(4*node_size)(%fn))
+        __(movq misc_data_offset+node_size(%temp0),%nfn)
+        __(jmp function.entrypoint(%nfn))
 local_label(some_args):         
         __(cmpl $2*node_size,%nargs)
         __(jz local_label(rtwo))
         /* One arg was passed, could be one or two inherited args */
         __(cmpw $node_size,%imm0_w)
-        __(movq misc_data_offset-node_size(%fn,%temp1),%arg_y)
+        __(movq misc_data_offset-node_size(%temp0,%temp1),%arg_y)
         __(je local_label(rgo))
-        __(movq misc_data_offset-(node_size*2)(%fn,%temp1),%arg_x)
+        __(movq misc_data_offset-(node_size*2)(%temp0,%temp1),%arg_x)
         __(jmp local_label(rgo))
 local_label(rtwo):     
-        __(movq misc_data_offset-node_size(%fn,%temp1),%arg_x)
+        __(movq misc_data_offset-node_size(%temp0,%temp1),%arg_x)
         __(jmp local_label(rgo))
 _endsubp(call_closure)
                                         
