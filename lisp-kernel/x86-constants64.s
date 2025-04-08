@@ -669,6 +669,7 @@ define_subtag(function_boundary_marker,fulltag_imm_1,15)
 	 _node(backlink) 
 	 _node(savera0)	
 	_ends
+        .set lisp_frame.savefn, -8
 
 	_struct(vector,-fulltag_misc)
 	 _node(header)
