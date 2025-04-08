@@ -694,11 +694,10 @@
            #+x8664-target (allocate-in-code-area element-count)
            #-x8664-target (allocate-typed-vector :code-vector element-count)))
     (declare (fixnum element-count size-in-bytes))
-    (%epushval s vector)
     (%fasl-read-n-bytes s vector 0 size-in-bytes)
-    (%make-code-executable vector)
     #+x8664-target (setf vector (%code-vector-to-entrypoint vector))
-    vector))
+    (%epushval s vector)
+    (%make-code-executable vector)))
 
 (defun fasl-read-gvector (s subtype)
   (let* ((n (%fasl-read-count s))
