@@ -2622,6 +2622,7 @@ _spentry(spreadargz)
 	__(jne 0f)
 	__(push $reserved_frame_marker)
 	__(push $reserved_frame_marker)
+        __(push $reserved_frame_marker)
 0:	__(movq %arg_z,%arg_y)	/* save in case of error   */
 	__(xorl %imm0_l,%imm0_l)
 	__(compare_reg_to_nil(%arg_z))
@@ -2639,7 +2640,7 @@ _spentry(spreadargz)
 	__(jne 1b)
 2:	__(addl %imm0_l,%nargs)
 	__(jne 4f)
-3:	__(addq $2*node_size,%rsp)
+3:	__(addq $3*node_size,%rsp)
 	__(jmp *%ra0)
 4:	__(cmpl $1*node_size,%nargs)
 	__(pop %arg_z)
@@ -3389,6 +3390,7 @@ local_label(walkloop_mvcall):
 
         __(cmpl $nargregs*node_size,%nargs)
         __(jbe local_label(pushloop_mvcall))
+        __(push $reserved_frame_marker)
         __(push $reserved_frame_marker)
         __(push $reserved_frame_marker)
 
@@ -4725,6 +4727,7 @@ _spentry(spread_lexprz)
         __(jne 0f)              /* yes, caller has already created frame. */
         __(cmpw $(nargregs*node_size),%imm0_w) /* will we push anything ? */
         __(jbe 0f)
+        __(push $reserved_frame_marker)
         __(push $reserved_frame_marker)
         __(push $reserved_frame_marker)
 0:      __(addw %imm0_w,%nargs_w)
