@@ -283,7 +283,11 @@
 ;;; sequence to hold the current function, since it might get GCed otherwise.
 ;;; (The odds of this happening are low, but non-zero.)
 (defx86reg xfn temp1)
-(defx86reg nfn temp1)
+;;; NFN could be any TEMP register, but I pick an arbitrarily high register
+;;; (TEMP5) as to not coincide with any uses of TEMP registers in LAP code.
+;;; The highest I found was TEMP1; ARG_W also aliases TEMP5 but I don't see
+;;; the code for 4 register arguments being used.
+(defx86reg nfn temp5)
 
 (defx86reg ra1 fn)
 

@@ -214,7 +214,7 @@ void
 plbt(ExceptionInformation *xp)
 {
 #ifdef X8664
-  LispObj pc = xpGPR(xp, Iip), fun = xpGPR(xp, Ifn), nfn = xpGPR(xp, Itemp1);
+  LispObj pc = xpGPR(xp, Iip), fun = xpGPR(xp, Ifn), nfn = xpGPR(xp, Infn);
   LispObj *base = (LispObj*)ptr_from_lispobj(untag(fun));
   LispObj *nfn_base = (LispObj*)ptr_from_lispobj(untag(nfn));
   int delta = fulltag_of(fun) == fulltag_function ? pc - base[1] : 0;

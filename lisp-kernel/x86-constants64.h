@@ -48,6 +48,7 @@
 #define Ira0 Itemp2
 #define Inargs Iimm2
 #define Ixfn Itemp1
+#define Infn Itemp5
 #define Ifp Irbp
 
 

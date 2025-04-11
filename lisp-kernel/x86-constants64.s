@@ -70,7 +70,7 @@
 	fname, next_method_context: 	temp0
         nargs:				imm2
         ra0:				temp2
-        nfn:				temp1
+        nfn:				temp5
         allocptr:			temp0
         stack_temp:			mm7	
 	
@@ -238,7 +238,7 @@ define(`nargs',`imm2_l')
 define(`ra0',`temp2')        
 						
 define(`xfn',`temp1')
-define(`nfn',`temp1')
+define(`nfn',`temp5')
 
 define(`allocptr',`temp0')		
 define(`stack_temp',`mm7')
