@@ -2756,7 +2756,7 @@ _spentry(tcallsymslide)
 	/* We can use %ra0 as a temporary here, since the real return address  */
 	/* is on the stack   */
 0:	__(movq -node_size(%imm0),%ra0)
-	__(movq %ra0,-node_size(%rbp,%imm1))
+	__(movq %ra0,-dnode_size(%rbp,%imm1))
 	__(subq $node_size,%imm0)
 	__(subq $node_size,%imm1)
 	__(cmpq %imm0,%rsp)
@@ -2782,7 +2782,7 @@ _spentry(tcallnfngen)
 	/* We can use %ra0 as a temporary here, since the real return address  */
 	/* is on the stack   */
 0:	__(movq -node_size(%imm0),%ra0)
-	__(movq %ra0,-node_size(%rbp,%imm1))
+	__(movq %ra0,-dnode_size(%rbp,%imm1))
 	__(subq $node_size,%imm0)
 	__(subq $node_size,%imm1)
 	__(cmpq %imm0,%rsp)
@@ -2807,7 +2807,7 @@ _spentry(tcallnfnslide)
 	/* We can use %ra0 as a temporary here, since the real return address  */
 	/* is on the stack   */
 0:	__(movq -node_size(%imm0),%ra0)
-	__(movq %ra0,-node_size(%rbp,%imm1))
+	__(movq %ra0,-dnode_size(%rbp,%imm1))
 	__(subq $node_size,%imm0)
 	__(subq $node_size,%imm1)
 	__(cmpq %imm0,%rsp)
