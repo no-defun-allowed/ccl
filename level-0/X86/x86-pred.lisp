@@ -91,8 +91,9 @@ numbers with the same type and value."
   (jne @won-with-eql)
   (popq (% y))
   (popq (% x))
+  (load-constant hairy-equal fname)
   (restore-simple-frame)
-  (jump-symbol hairy-equal 2)
+  (jump-symbol :already-in-fname 2)
   @won-with-eql
   (restore-simple-frame)                ; discards pushed args
   (movl ($ t) (% arg_z.l))

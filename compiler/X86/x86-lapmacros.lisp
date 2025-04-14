@@ -619,15 +619,19 @@
   (target-arch-case
    (:x8632
     `(progn
-       (load-constant ,name fname)
+       ,(if (eq name :already-in-fname)
+            `(progn)
+            `(load-constant ,name fname))
        (set-nargs ,nargs)
        (jmp (@ x8632::symbol.fcell (% fname)))))
    (:x8664
     `(progn
-       (load-constant ,name fname)
+       ,(if (eq name :already-in-fname)
+            `(progn)
+            `(load-constant ,name fname))
        (set-nargs ,nargs)
        (mov (@ x8664::symbol.fcell (% fname)) (% nfn))
-       (call (@ x8664::function.entrypoint (% nfn)))))))
+       (jmp (@ x8664::function.entrypoint (% nfn)))))))
 
 (defx86lapmacro push-argregs ()
   (let* ((done (gensym))
