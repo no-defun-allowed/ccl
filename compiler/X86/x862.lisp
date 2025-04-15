@@ -3379,7 +3379,10 @@
            
            ;; We can probably do better than popping the nvrs
            ;; and then jumping to a point where we push them again ...
-           (target-arch-case (:x8664 (! restore-fn-from-rbp)))
+           (target-arch-case
+            (:x8664
+             (! copy-nfn-from-fn)
+             (! restore-fn-from-rbp)))
            (! restore-nfp)
            (let* ((nstack (- nargs *x862-target-num-arg-regs*)))
              (declare (fixnum nstack))
@@ -3393,6 +3396,7 @@
           ((and (not tail-p)
                 (eql nargs *x862-fixed-nargs*)
                 *x862-fixed-self-call-label*)
+           (! copy-nfn-from-fn)
            (! call-label (aref *backend-labels* *x862-fixed-self-call-label*))
            t))))
 

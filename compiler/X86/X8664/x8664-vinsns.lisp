@@ -5192,6 +5192,9 @@
   (movq (:@ (:apply * (:apply - nstackargs (:apply + 1 n)) x8664::node-size) (:%q x8664::rsp)) (:%q temp))
   (movq (:%q temp) (:@ (:apply * (:apply + n 2) (- x8664::node-size)) (:%q x8664::rbp))))
 
+(define-x8664-vinsn (copy-nfn-from-fn) (() ())
+  (movq (:%q x8664::fn) (:%q x8664::nfn)))
+
 (define-x8664-vinsn (restore-fn-from-rbp :needs-frame-pointer) (() ())
   (movq (:@ (:apply - x8664::word-size-in-bytes) (:%q x8664::rbp)) (:%q x8664::fn)))
 
