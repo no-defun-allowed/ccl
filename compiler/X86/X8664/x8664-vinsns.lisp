@@ -3908,7 +3908,9 @@
    (leaq (:@ (:apply - (:apply ash min-fixed x8664::word-shift)) (:%q x8664::nargs))
          (:%q x8664::nargs)))
   (pushq (:%q x8664::nargs))
-  (movq (:%q x8664::rsp) (:%q x8664::arg_z)))
+  (movq (:%q x8664::rsp) (:%q x8664::arg_z))
+  (movq (:%q x8664::fn) (:%q x8664::nfn))
+  (movq (:@ (:apply - x8664::word-size-in-bytes) (:%q x8664::rbp)) (:%q x8664::fn)))
 
 
 
@@ -3942,7 +3944,9 @@
   (pushq (:%q temp))
   :finish
   (pushq (:%q x8664::rbp))
-  (movq (:%q x8664::rsp) (:%q x8664::rbp)))
+  (movq (:%q x8664::rsp) (:%q x8664::rbp))
+  (pushq (:%q x8664::fn))
+  (movq (:%q x8664::nfn) (:%q x8664::fn)))
 
 
 (define-x8664-vinsn copy-lexpr-argument (()
