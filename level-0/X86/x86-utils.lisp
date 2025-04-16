@@ -331,7 +331,7 @@
   (extract-lisptag x imm0)
   (btw (% imm0.w) (% imm1.w))
   (cmovbl (% arg_z.l) (% imm0.l))
-  (movq (@ '*class-table* (% fn)) (% temp1))
+  (movq (@ '*class-table* (% nfn)) (% temp1))
   (cmpb ($ x8664::tag-misc) (% imm0.b))
   (jne @have-tag)
   (extract-subtag x imm0)
@@ -345,11 +345,11 @@
   (cmpb ($ x8664::fulltag-function) (%b imm0))
   (jne @ret)
   (set-nargs 1)
-  (jmp (% temp0))
+  (movq (% temp0) (% nfn))
+  (jmp (@ x8664::function.entrypoint (% nfn)))
   @bad
-  (load-constant no-class-error fname)
-  (set-nargs 1)
-  (jmp  (@ x8664::symbol.fcell (% fname)))
+  (load-constant no-class-error fname nfn)
+  (jump-symbol :already-in-fname 1)
   @ret
   (movq (% temp0) (% arg_z))  ; return frob from table
   (single-value-return))
@@ -588,7 +588,7 @@ at heap allocation."
   (subq ($ '3) (% nargs.q))
   (leaq (@ '2 (% rsp) (% nargs.q)) (% imm0))
   (cmovaq (% imm0) (% rsp))
-  (movq (@ 'constant (% fn)) (% arg_z))
+  (movq (@ 'constant (% nfn)) (% arg_z))
   (push (% ra0))
   (single-value-return))  
 
