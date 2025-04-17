@@ -38,11 +38,10 @@
   (subb ($ (- 15 x8664::fulltag-misc)) (% arg_z.b))
   (single-value-return))
 
-(defx86lapfunction %function-code-words ((fun arg_z))
-  (trap-unless-fulltag= fun x8664::fulltag-function)
-  (movl (@ (- x8664::node-size x8664::fulltag-function) (% fun)) (% imm0.l))
-  (box-fixnum imm0 arg_z)
-  (single-value-return))
+(defun %function-code-words (fun)
+  (declare (ignore fun))
+  ;; There's now just the one "code" word for the entrypoint.
+  1)
 
 ;;; This used to need to skip over code words, now it only has to skip over
 ;;; the entrypoint (and header) which is done by adding DNODE-SIZE
@@ -146,7 +145,8 @@
 (defun replace-function-code (target proto)
   (if (typep target 'function)
       (if (typep proto 'function)
-          (setf (uvref target 0) (uvref proto 0))
+          (setf (uvref (%function-to-function-vector target) 0)
+                (uvref (%function-to-function-vector proto) 0))
           (report-bad-arg proto 'function))
       (report-bad-arg target 'function)))
 
