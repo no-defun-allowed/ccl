@@ -566,6 +566,7 @@
   db-link                               ; value of dynamic-binding link on thread entry.
   xframe                                ; exception-frame link
   pc                                    ; tra of catch exit/unwind cleanup
+  fn
 )
 
 (define-fixedsized-object lock ()

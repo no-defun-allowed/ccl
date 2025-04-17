@@ -238,6 +238,7 @@ define(`nMake_Catch',`
 	__(movq rcontext(tcr.xframe),%imm0)
         __(movq rcontext(tcr.nfp),%mm0)
 	__(movq %rbp,catch_frame.rbp(%imm2))
+        __(movq %fn,catch_frame.fn(%imm2))
         __(movq rcontext(tcr.foreign_sp),%stack_temp)
 	__(movq %imm1,catch_frame.db_link(%imm2))
 	__(movq %imm0,catch_frame.xframe(%imm2))
