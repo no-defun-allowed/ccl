@@ -639,7 +639,7 @@ define_subtag(function_boundary_marker,fulltag_imm_1,15)
 	 _node(xframe)		/* exception frame chain   */
 	 _node(pc)		/* TRA of catch exit or cleanup form   */
          _node(nfp)
-         _node(fn)
+         _node(ffn)
 	_endstructf
 
 
