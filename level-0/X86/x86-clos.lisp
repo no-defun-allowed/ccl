@@ -172,6 +172,7 @@
         (lock)
         (addq ($ x8664::fixnumone) (@ 'hash (% fn))))
       (movq (@ (% rsp)) (% ra0))
+      ;; Make a LEXPR frame
       (save-frame-variable-arg-count)
       (push-argregs)
       (pushq (%q nargs))

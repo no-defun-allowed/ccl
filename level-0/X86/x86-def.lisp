@@ -444,7 +444,7 @@
   (je @discard-and-go)
   @go
   (push (% ra0))
-  (jmp (% xfn))
+  (jump-function (% xfn))
   @bad
   (addq (% imm0) (% rsp))
   (movq (% arg_y) (% arg_z))
@@ -464,6 +464,7 @@
   (movq (% args) (% rsp))
   (pop (%q nargs))
   (movq (@ x8664::lisp-frame.return-address (% rbp)) (% ra0))
+  (movq (@ -8 (% rbp)) (% rbp))
   (movq (@ 0 (% rbp)) (% rbp))
   (rcmpl (% nargs) ($ '3))
   (jbe @pop-regs)
@@ -492,7 +493,7 @@
   (discard-reserved-frame)
   @popped
   (push (% ra0))
-  (jmp (% xfn)))
+  (jump-function (% xfn)))
 
 
 

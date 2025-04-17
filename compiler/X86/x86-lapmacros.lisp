@@ -617,8 +617,7 @@
     `(progn
       (load-constant ,name fname)
       (set-nargs ,nargs)
-      (mov (@ x8664::symbol.fcell (% fname)) (% nfn))
-      (call (@ x8664::function.entrypoint (% nfn)))))))
+      (call-function (@ x8664::symbol.fcell (% fname)))))))
 
 
 ;;;  tail call the function named by NAME with nargs NARGS.  %FN is
@@ -643,8 +642,7 @@
             `(progn)
             `(load-constant ,name fname))
        (set-nargs ,nargs)
-       (mov (@ x8664::symbol.fcell (% fname)) (% nfn))
-       (jmp (@ x8664::function.entrypoint (% nfn)))))))
+       (jump-function (@ x8664::symbol.fcell (% fname)))))))
 
 (defx86lapmacro push-argregs ()
   (let* ((done (gensym))
