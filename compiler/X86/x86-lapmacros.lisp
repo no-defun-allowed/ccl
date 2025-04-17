@@ -425,8 +425,10 @@
    (:x8664
     `(progn
       (movq (% rbp) (@ ,(* (1+ nstackargs) x8664::node-size) (% rsp)))
-      (leaq (@ ,(* (1+ nstackargs) x8664::node-size) (% rsp)) (% rbp))
-      (popq (@ x8664::node-size (% rbp)))))))
+      (leaq (@ ,(* (+ 2 nstackargs) x8664::node-size) (% rsp)) (% rbp))
+      (popq (@ x8664::node-size (% rbp)))
+      (movq (% fn) (@ (- x8664::node-size) (% rbp)))
+      (movq (% nfn) (% fn))))))
 
 (defx86lapmacro save-frame-variable-arg-count ()
   (let* ((push (gensym))
@@ -450,8 +452,10 @@
 	 (subq ($ (* $numx8664argregs x8664::node-size)) (% imm0))
 	 (jle ,push)
 	 (movq (% rbp) (@ 8 (% rsp) (% imm0)))
-	 (leaq (@ 8 (% rsp) (% imm0)) (% rbp))
+	 (leaq (@ 16 (% rsp) (% imm0)) (% rbp))
 	 (popq (@ 8 (% rbp)))
+         (movq (% fn) (@ -8 (% rbp)))
+         (movq (% nfn) (% fn))
 	 (jmp ,done)
 	 ,push
 	 (save-simple-frame)
@@ -517,7 +521,6 @@
        (jmp ,arg)))
    (:x8664
     `(progn
-       (:talign 4)
        (jmp ,arg)))))
 
 (defx86lapmacro call-subprim (name)
@@ -587,6 +590,16 @@
          (lea (@ (- (:^ ,next)) (% rip)) (% fn))
          ,next)))
    (:x8664 `(progn))))
+
+(defx86lapmacro jump-function (arg)
+  `(progn
+     (mov ,arg (% nfn))
+     (jmp (@ x8664::function.entrypoint (% nfn)))))
+
+(defx86lapmacro call-function (arg)
+  `(progn
+     (mov ,arg (% nfn))
+     (call (@ x8664::function.entrypoint (% nfn)))))
 
 ;;; call symbol named NAME, setting nargs to NARGS.  Do the TRA
 ;;; hair.   Args should already be in arg regs, and we expect

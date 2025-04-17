@@ -188,8 +188,7 @@
       (push (% ra0))
       (movq (@ 'dispatch-table (% fn)) (% arg_y))
       (set-nargs 2)
-      (jmp (@ 'dcode (% fn)))  ; dcode function
-      ))))
+      (jump-function (@ 'dcode (% fn))))))) ; dcode function
 
 ;;; is a winner - saves ~15%
 (defx86lapfunction gag-one-arg ((arg arg_z))
@@ -200,9 +199,9 @@
     (lock)
     (addq ($ x8664::fixnumone) (@ 'hash (% fn))))
   (check-nargs 1)
-  (movq (@ 'dispatch-table (% fn)) (% arg_y))
+  (movq (@ 'dispatch-table (% nfn)) (% arg_y))
   (set-nargs 2)
-  (jmp (@ 'dcode (% fn))))
+  (jump-function (@ 'dcode (% nfn))))
 
 (defx86lapfunction gag-two-arg ((arg0 arg_y) (arg1 arg_z))
   (:fixed-constants (class-wrapper slots dispatch-table dcode hash))
@@ -214,13 +213,13 @@
   (check-nargs 2)
   (movq (@ 'dispatch-table (% fn)) (% arg_x))
   (set-nargs 3)
-  (jmp (@ 'dcode (% fn))))
+  (jump-function (@ 'dcode (% nfn))))
 
 
 (defx86lapfunction funcallable-trampoline ()
   (:fixed-constants (class-wrapper slots dispatch-table dcode hash))
   (:code-size x8664::gf-code-size)
-  (jmp (@ 'dcode (% fn))))
+  (jump-function (@ 'dcode (% nfn))))
 
 
 ;;; This is in LAP so that it can reference itself in the error message.
@@ -266,7 +265,7 @@
       (push (% ra0))
       (movq (@ 'thing (% fn)) (% arg_y))
       (set-nargs 2)
-      (jmp (@ 'dcode (% fn)))))))
+      (jump-function (@ 'dcode (% fn)))))))
 
 
 
