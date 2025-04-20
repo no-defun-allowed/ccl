@@ -464,7 +464,7 @@
   (movq (% args) (% rsp))
   (pop (%q nargs))
   (movq (@ x8664::lisp-frame.return-address (% rbp)) (% ra0))
-  (movq (@ -8 (% rbp)) (% rbp))
+  (movq (@ -8 (% rbp)) (% fn))
   (movq (@ 0 (% rbp)) (% rbp))
   (rcmpl (% nargs) ($ '3))
   (jbe @pop-regs)
