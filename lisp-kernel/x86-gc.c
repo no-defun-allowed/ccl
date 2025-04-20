@@ -49,6 +49,15 @@ imm_word_count(LispObj fn)
 
 /* Heap sanity checking. */
 
+#ifdef X8664
+static Boolean in_code_area(LispObj where) {
+  char *p = (char*)where;
+  return code_area->low <= p && p < code_area->active;
+}
+#else
+#define in_code_area(where) 0
+#endif
+
 void
 check_node(LispObj n)
 {
@@ -60,6 +69,7 @@ check_node(LispObj n)
     return;
   }
 
+  if (in_code_area(n)) return;
   switch (tag) {
   case fulltag_even_fixnum:
   case fulltag_odd_fixnum:
@@ -259,14 +269,15 @@ check_range(LispObj *start, LispObj *end, Boolean header_allowed)
     prev = current;
     node = *current++;
     tag = fulltag_of(node);
+    if (in_code_area(node)) continue;
     if (immheader_tag_p(tag)) {
       if (! header_allowed) {
-        Bug(NULL, "Header not expected at 0x" LISP "\n", prev);
+        Bug(NULL, "Immediate header 0x" LISP " not expected at 0x" LISP "\n", node, prev);
       }
       current = (LispObj *)skip_over_ivector((natural)prev, node);
     } else if (nodeheader_tag_p(tag)) {
       if (! header_allowed) {
-        Bug(NULL, "Header not expected at 0x" LISP "\n", prev);
+        Bug(NULL, "Node header 0x" LISP " not expected at 0x" LISP "\n", node, prev);
       }
       elements = header_element_count(node) | 1;
 #ifdef X8632
