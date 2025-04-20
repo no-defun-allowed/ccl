@@ -269,19 +269,17 @@ check_range(LispObj *start, LispObj *end, Boolean header_allowed)
         Bug(NULL, "Header not expected at 0x" LISP "\n", prev);
       }
       elements = header_element_count(node) | 1;
-      if (header_subtag(node) == subtag_function) {
 #ifdef X8632
+      if (header_subtag(node) == subtag_function) {
 	int skip = *(unsigned short *)current;
 
 	/* XXX bootstrapping */
 	if (skip & 0x8000)
 	  skip = elements - (skip & 0x7fff);
-#else
-        int skip = *(int *)current;
-#endif
         current += skip;
         elements -= skip;
       }
+#endif
       while (elements--) {
         check_node(*current++);
       }
@@ -568,21 +566,18 @@ mark_root(LispObj n)
           element_count -= 1;
         }
       }
-
-      if (subtag == subtag_function) {
 #ifdef X8632
+      if (subtag == subtag_function) {
 	prefix_nodes = (natural) ((unsigned short) deref(base,1));
 
 	/* XXX bootstrapping */
 	if (prefix_nodes & 0x8000)
 	  prefix_nodes = element_count - (prefix_nodes & 0x7fff);
-#else
-	prefix_nodes = (natural) ((int) deref(base,1));
-#endif
         if (prefix_nodes > element_count) {
           Bug(NULL, "Function 0x" LISP " trashed",n);
         }
       }
+#endif
       base += (1+element_count);
 
       element_count -= prefix_nodes;
@@ -769,21 +764,19 @@ rmark(LispObj n)
 
       nmark = element_count;
 
+#ifdef X8632
       if (subtag == subtag_function) {
-#ifdef X8664
-	int code_words = (int)base[1];
-#else
 	int code_words = (unsigned short)base[1];
 
 	/* XXX bootstrapping */
 	if (code_words & 0x8000)
 	  code_words = element_count - (code_words & 0x7fff);
-#endif
         if (code_words >= nmark) {
           Bug(NULL,"Bad function at 0x" LISP,n);
         }
 	nmark -= code_words;
       }
+#endif
 
       while (nmark--) {
         rmark(deref(n,element_count));
@@ -956,10 +949,6 @@ rmark(LispObj n)
     base = (LispObj *) ptr_from_lispobj(untag(this));
     header = *((natural *) base);
     subtag = header_subtag(header);
-    if (subtag == subtag_function) {
-      boundary = base + (int)(base[1]);
-      (((int *)boundary)[1]) = (int)(this-((LispObj)boundary));
-    }
     element_count = header_element_count(header);
     tag_n = fulltag_of(header);
 
@@ -1185,19 +1174,18 @@ check_refmap_consistency(LispObj *start, LispObj *end, bitvector refbits, bitvec
     if (immheader_tag_p(tag)) {
       start = skip_over_ivector(ptr_to_lispobj(start), x1);
     } else {
-      if (header_subtag(x1) == subtag_function) {
 #ifdef X8632
+      if (header_subtag(x1) == subtag_function) {
         int skip = (unsigned short)deref(start,1);
         /* XXX bootstrapping */
         if (skip & 0x8000)
           skip = header_element_count(x1) - (skip & 0x7fff);
-#else
-        int skip = (int) deref(start,1);
-#endif
         start += ((1+skip)&~1);
         x1 = *start;
         tag = fulltag_of(x1);
-      } else {
+      } else
+#endif
+      {
         if (header_subtag(x1) == subtag_weak) {
           lenient_next_dnode = true;
         }
@@ -1309,8 +1297,8 @@ mark_simple_area_range(LispObj *start, LispObj *end)
       }
 
       base = start + element_count + 1;
-      if (subtag == subtag_function) {
 #ifdef X8632
+      if (subtag == subtag_function) {
 	natural skip = (unsigned short)start[1];
 
 	/* XXX bootstrapping */
@@ -1318,11 +1306,8 @@ mark_simple_area_range(LispObj *start, LispObj *end)
 	  skip = element_count - (skip & 0x7fff);
 
 	element_count -= skip;
-
-#else
-	element_count -= (int)start[1];
-#endif
       }
+#endif
       while(element_count--) {
 	mark_root(*--base);
       }
@@ -1943,22 +1928,17 @@ compact_dynamic_heap()
           elements = header_element_count(node);
           node_dnodes = (elements+2)>>1;
           dnode += node_dnodes;
-	  if (header_subtag(node) == subtag_function) {
 #ifdef X8632
+	  if (header_subtag(node) == subtag_function) {
 	    LispObj *f = dest;
 	    int skip = imm_word_count(fulltag_misc + (LispObj)current);
-#else
-	    int skip = *((int *)src);
-#endif
 	    *dest++ = node;
             if (skip) {
               elements -= skip;
               while(skip--) {
                 *dest++ = *src++;
               }
-#ifdef X8632
               update_self_references(f);
-#endif
             }
 	    while(elements--) {
 	      *dest++ = node_forwarding_address(*src++);
@@ -1967,7 +1947,9 @@ compact_dynamic_heap()
 	      src++;
 	      *dest++ = 0;
 	    }
-	  } else {
+          } else
+#endif
+            {
 	    if ((header_subtag(node) == subtag_hash_vector) &&
 		(((hash_table_vector_header *) (src-1))->flags & nhash_track_keys_mask)) {
 	      hash_table_vector_header *hashp = (hash_table_vector_header *) dest;
@@ -2428,20 +2410,18 @@ purify_range(LispObj *start, LispObj *end, BytePtr low, BytePtr high, area *to, 
           *start++ = 0;
         } else {
           pfn = 0;
-          if (header_subtag(header) == subtag_function) {
 #ifdef X8632
+          if (header_subtag(header) == subtag_function) {
             int skip = (unsigned short)(start[1]);
 
 	    /* XXX bootstrapping */
 	    if (skip & 0x8000)
 	      skip = header_element_count(header) - (skip & 0x7fff);
-#else
-            int skip = (int)(start[1]);
-#endif
             pfn = (LispObj)start;
             start += skip;
             nwords -= skip;
           }
+#endif
           start++;
           while(nwords--) {
             copy_reference(start, low, high, to, what, recursive);
@@ -2646,19 +2626,17 @@ update_managed_refs(area *a, BytePtr low_dynamic_address, natural ndynamic_dnode
     if (immheader_tag_p(tag)) {
       start = skip_over_ivector(ptr_to_lispobj(start), x1);
     } else {
-      if (header_subtag(x1) == subtag_function) {
 #ifdef X8632
+      if (header_subtag(x1) == subtag_function) {
 	int skip = (unsigned short)deref(start,1);
 	/* XXX bootstrapping */
 	if (skip & 0x8000)
 	  skip = header_element_count(x1) - (skip & 0x7fff);
-#else
-        int skip = (int) deref(start,1);
-#endif
         start += ((1+skip)&~1);
         x1 = *start;
         tag = fulltag_of(x1);
       }
+#endif
       intergen_ref = false;
       if (is_node_fulltag(tag)) {        
         node_dnode = area_dnode(x1, low_dynamic_address);
@@ -2957,15 +2935,13 @@ impurify_range(LispObj *start, LispObj *end, LispObj low, LispObj high, signed_n
           }
           *start++ = 0;
         } else {
-          if (header_subtag(header) == subtag_function) {
 #ifdef X8632
+          if (header_subtag(header) == subtag_function) {
 	    int skip = (unsigned short)start[1];
-#else
-            int skip = (int)(start[1]);
-#endif
             start += skip;
             nwords -= skip;
           }
+#endif
           start++;
           while(nwords--) {
             impurify_noderef(start, low, high, delta);
@@ -3210,20 +3186,16 @@ wp_update_range(LispObj *start, LispObj *end, LispObj old, LispObj new)
         }
         *p++ = 0;
       } else {
-	if (header_subtag(node) == subtag_function) {
 #ifdef X8632
+	if (header_subtag(node) == subtag_function) {
 	  int skip = (unsigned short)(p[1]);
-
 	  /* XXX bootstrapping */
 	  if (skip & 0x8000)
 	    skip = header_element_count(node) - (skip & 0x7fff);
-
-#else
-	  int skip = (int)(p[1]);
-#endif
 	  p += skip;
 	  nwords -= skip;
 	}
+#endif
         p++;
         while(nwords--) {
 	  wp_maybe_update(p, old, new);
