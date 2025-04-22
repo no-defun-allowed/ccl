@@ -2194,13 +2194,15 @@
 
 (define-x8664-vinsn (xpass-multiple-values-known-function :call :extended-call :jumplr)
     (() ((lab :label) (fnreg :lisp)))
-  (pushq (:@ (:apply + (:apply target-nil-value) (x8664::%kernel-global 'x86::ret1valaddr)))) 
-  (jmp (:%q fnreg)))
+  (pushq (:@ (:apply + (:apply target-nil-value) (x8664::%kernel-global 'x86::ret1valaddr))))
+  (movq (:%q fnreg) (:%q x8664::nfn))
+  (jmp (:@ x8664::function.entrypoint (:% x8664::nfn))))
 
 (define-x8664-vinsn (pass-multiple-values-known-function :call :extended-call :jumplr)
     (() ((fnreg :lisp)))
-  (pushq (:@ (:apply + (:apply target-nil-value) (x8664::%kernel-global 'x86::ret1valaddr)))) 
-  (jmp (:%q fnreg)))
+  (pushq (:@ (:apply + (:apply target-nil-value) (x8664::%kernel-global 'x86::ret1valaddr))))
+  (movq (:%q fnreg) (:%q x8664::nfn))
+  (jmp (:@ x8664::function.entrypoint (:% x8664::nfn))))
 
 (define-x8664-vinsn reserve-outgoing-frame (()
                                             ())
