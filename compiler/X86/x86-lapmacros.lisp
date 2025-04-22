@@ -478,6 +478,12 @@
    (:x8664
     `(add ($ '3) (% rsp)))))
 
+(defx86lapmacro push-reserved-frame ()
+  `(progn
+     (pushq ($ x8664::reserved-frame-marker))
+     (pushq ($ x8664::reserved-frame-marker))
+     (pushq ($ x8664::reserved-frame-marker))))
+
 ;;; Return to caller.
 (defx86lapmacro single-value-return (&optional (words-to-discard 0))
   (target-arch-case

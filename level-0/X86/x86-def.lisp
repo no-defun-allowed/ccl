@@ -372,8 +372,7 @@
   (subl ($ '3) (% imm0))
   (jbe @reg-only)
   ;; Some args will be pushed; reserve a frame
-  (pushq ($ x8664::reserved-frame-marker))
-  (pushq ($ x8664::reserved-frame-marker))
+  (push-reserved-frame)
   @pushloop
   (pushq (@ (- x8664::node-size) (% imm1)))
   (subq ($ x8664::node-size) (% imm1))
@@ -514,8 +513,7 @@
    (cmpl ($ '3) (% nargs))
    (pop (% ra0))
    (ja @no-frame)
-   (pushq ($ x8664::reserved-frame-marker))
-   (pushq ($ x8664::reserved-frame-marker))
+   (push-reserved-frame)
 @no-frame         
    (push (% arg_x))
    (movq (% arg_z) (% temp0))           ; last
