@@ -410,9 +410,7 @@
   (movq (% function) (% x8664::xfn))
   (movq (% args) (% arg_y))             ; in case of error
   (set-nargs 0)
-  (xorl (% imm0.l) (% imm0.l))
-  (push (% imm0))                       ; reserve frame (might discard
-  (push (% imm0))                       ; it if nothing is passed on stack.)
+  (push-reserved-frame)                 ; might discard it if nothing is passed on stack
   (cmp-reg-to-nil arg_z)
   (je @done)
   @loop
