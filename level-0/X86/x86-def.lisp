@@ -395,7 +395,7 @@
   (jmp @three)
   @go
   (push (% ra0))
-  (jmp (% xfn)))
+  (jump-function (% xfn)))
 
 (defx86lapfunction %apply-with-method-context ((magic arg_x)
                                                (function arg_y)

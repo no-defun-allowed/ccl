@@ -1,4 +1,4 @@
-; -*- Mode: Lisp; Package: CCL; -*-
+; -*- mode: Lisp; Package: CCL; -*-
 ;;;
 ;;; Copyright 1994-2009 Clozure Associates
 ;;;
@@ -119,9 +119,7 @@
     (movq (@ fun-offset (% x8664::rbp)) (% rfun))
     (movq (% robj) (@ object-offset (% x8664::rbp)))
     (set-nargs 1)
-    (:talign 4)
-    (call (% rfun))
-    (recover-fn-from-rip)  
+    (call-function (% rfun))
     (movq (@ object-offset (% x8664::rbp)) (% robj))
     (getvheader robj imm1)
     (movb (% imm1.b) (% imm0.b))
@@ -169,9 +167,7 @@
     (movq (@ fun-offset (% x8664::rbp)) (% rfun))
     (movq (% robj) (@ object-offset (% x8664::rbp)))
     (set-nargs 1)
-    (:talign 4)
-    (call (% rfun))
-    (recover-fn-from-rip)
+    (call-function (% rfun))
     (movq (@ object-offset (% x8664::rbp)) (% robj))
     (addq ($ (- x8664::cons.size x8664::fulltag-cons)) (% robj))
     (jmp @test)
