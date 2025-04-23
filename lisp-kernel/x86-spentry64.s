@@ -3465,6 +3465,7 @@ _endsubp(stack_misc_alloc_init)
 	.globl C(popj)
 _spentry(popj)
 C(popj):
+        __(movq -8(%rbp),%fn)
 	__(leave)
         __(ret)
 _endsubp(popj)
