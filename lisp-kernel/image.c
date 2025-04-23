@@ -253,7 +253,7 @@ load_image_section(int fd, openmcl_image_section_header *sect)
 		 fd)) {
       return;
     }
-    print_all_symbols(a);
+    print_area_symbols(a);
     a->static_dnodes = sect->static_dnodes;
     sect->area = a;
     break;

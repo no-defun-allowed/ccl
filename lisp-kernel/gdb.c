@@ -61,12 +61,12 @@ static void buffer_emit(struct buffer* b, natural n, const char *data) {
   b->pos += n;
 }
 
-void print_all_symbols(area *a)
+static void print_area_symbols_to_buffer(area *a, struct buffer *b)
 {
+  if (!a) return;
   LispObj *start = (LispObj *)(a->low), *end = (LispObj *)(a->active);
   /* Our symbol table format is start and end bounds of each function,
    * then the symbol name as a zero-terminated string. */
-  struct buffer b = buffer_init();
   while (start < end) {
     LispObj w0;
     int fulltag;
@@ -89,9 +89,9 @@ void print_all_symbols(area *a)
           snprintf(buffer, 128, "lambda_%lx", start);
           str = buffer;
         }
-        buffer_emit(&b, sizeof(LispObj), (char*)&code);
-        buffer_emit(&b, sizeof(LispObj), (char*)&end);
-        buffer_emit(&b, strlen(str) + 1, str);
+        buffer_emit(b, sizeof(LispObj), (char*)&code);
+        buffer_emit(b, sizeof(LispObj), (char*)&end);
+        buffer_emit(b, strlen(str) + 1, str);
       }
       start += 2;
     }
@@ -99,15 +99,35 @@ void print_all_symbols(area *a)
   if (start > end) {
     Bug(NULL, "Overran area bounds in print_all_symbols");
   }
-  if (b.pos) {
+}
+
+static void commit_buffer(struct buffer *b)
+{
+  if (b->pos) {
     /* Now write in the entry */
     struct jit_code_entry *entry = malloc(sizeof(struct jit_code_entry));
-    entry->symfile_addr = b.start;
-    entry->symfile_size = b.pos;
+    entry->symfile_addr = b->start;
+    entry->symfile_size = b->pos;
     entry->next_entry = entry->prev_entry = NULL;
     __jit_debug_descriptor.action_flag = JIT_REGISTER_FN;
     __jit_debug_descriptor.relevant_entry = entry;
     __jit_debug_descriptor.first_entry = entry;
     __jit_debug_register_code();
   }
+}
+
+void print_area_symbols(area *a)
+{
+  struct buffer b = buffer_init();
+  print_area_symbols_to_buffer(a, &b);
+  commit_buffer(&b);
+}
+
+void print_all_symbols()
+{
+  struct buffer b = buffer_init();
+  print_area_symbols_to_buffer(active_dynamic_area, &b);
+  print_area_symbols_to_buffer(g1_area, &b);
+  print_area_symbols_to_buffer(g2_area, &b);
+  commit_buffer(&b);
 }
