@@ -451,7 +451,7 @@
 	 (movl (% nargs) (%l imm0))
 	 (subq ($ (* $numx8664argregs x8664::node-size)) (% imm0))
 	 (jle ,push)
-	 (movq (% rbp) (@ 8 (% rsp) (% imm0)))
+	 (movq (% rbp) (@ 16 (% rsp) (% imm0)))
 	 (leaq (@ 16 (% rsp) (% imm0)) (% rbp))
 	 (popq (@ 8 (% rbp)))
          (movq (% fn) (@ -8 (% rbp)))
