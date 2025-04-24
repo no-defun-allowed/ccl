@@ -5206,10 +5206,7 @@
 
 (define-x8664-vinsn (set-tail-vsp :needs-frame-pointer) (((nargs :u16const))
                                   ())
-  ((:pred = 0 nargs)
-   (movq (:%q x8664::rbp) (:%q x8664::rsp)))
-  ((:not (:pred = 0 nargs))
-   (leaq (:@ (:apply * (:apply + 1 nargs) (- x8664::node-size)) (:%q x8664::rbp)) (:%q x8664::rsp))))
+  (leaq (:@ (:apply * (:apply + 1 nargs) (- x8664::node-size)) (:%q x8664::rbp)) (:%q x8664::rsp)))
 
 
 ;;; If we've used one of the fixed-stack-args !slideN vinsns above

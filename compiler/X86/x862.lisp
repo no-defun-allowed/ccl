@@ -3379,10 +3379,6 @@
            
            ;; We can probably do better than popping the nvrs
            ;; and then jumping to a point where we push them again ...
-           (target-arch-case
-            (:x8664
-             (! copy-nfn-from-fn)
-             (! restore-fn-from-rbp)))
            (! restore-nfp)
            (let* ((nstack (- nargs *x862-target-num-arg-regs*)))
              (declare (fixnum nstack))
