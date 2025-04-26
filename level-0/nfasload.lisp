@@ -701,14 +701,23 @@
 
 (defun fasl-read-gvector (s subtype)
   (let* ((n (%fasl-read-count s))
-         (vector (%alloc-misc n subtype)))
+         (vector (%alloc-misc n subtype))
+         ;; Fix the tag on x8664; functions are tagged FULLTAG-MISC on other
+         ;; architectures but they are FULLTAG-FUNCTION on x8664.
+         (retagged
+           #+x8664-target
+           (if (= subtype target::subtag-function)
+               (%function-vector-to-function vector)
+               vector)
+           #-x8664-target
+           vector))
     (declare (fixnum n subtype))
-    (%epushval s vector)
+    (%epushval s retagged)
     (dotimes (i n)
       (setf (%svref vector i) (%fasl-expr s)))
     #+arm-target (when (= subtype arm::subtag-function)
                    (%fix-fn-entrypoint vector))
-    (setf (faslstate.faslval s) vector)))
+    (setf (faslstate.faslval s) retagged)))
 
 (deffaslop $fasl-vgvec (s)
   (let* ((subtype (%fasl-read-byte s)))
@@ -732,12 +741,7 @@
   (fasl-read-gvector s target::subtag-simple-vector))
 
 (deffaslop $fasl-function (s)
-  (fasl-read-gvector s target::subtag-function)
-  ;; Fix the tag on x8664; functions are tagged FULLTAG-MISC on other
-  ;; architectures but they are FULLTAG-FUNCTION on x8664.
-  #+x8664-target
-  (setf (faslstate.faslval s)
-        (%function-vector-to-function (faslstate.faslval s))))
+  (fasl-read-gvector s target::subtag-function))
 
 (deffaslop $fasl-istruct (s)
   (fasl-read-gvector s target::subtag-istruct))
