@@ -9962,7 +9962,7 @@
         (push func real-funcs)
         (let* ((i (target-arch-case
 		   (:x8632 7)
-		   (:x8664 5))) ; skip 4 words of code, inner function
+		   (:x8664 2))) ; skip entry point, inner function
                (our-var nil)
                (item nil))
           (declare (fixnum i))
