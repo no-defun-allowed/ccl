@@ -3490,6 +3490,7 @@
                     (if (and (not spread-p) nargs (%i<= nargs *x862-target-num-arg-regs*))
                       (progn
                         (unless (or label-p a-reg) (x862-store-immediate seg func destreg))
+                        (target-arch-case (:x8664 (when label-p (! copy-nfn-from-fn))))
                         (x862-restore-full-lisp-context seg)
                         (if label-p
                           (! jump (aref *backend-labels* 1))
