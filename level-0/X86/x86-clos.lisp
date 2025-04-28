@@ -196,7 +196,7 @@
   #+count-gf-calls
   (progn
     (lock)
-    (addq ($ x8664::fixnumone) (@ 'hash (% fn))))
+    (addq ($ x8664::fixnumone) (@ 'hash (% nfn))))
   (check-nargs 1)
   (movq (@ 'dispatch-table (% nfn)) (% arg_y))
   (set-nargs 2)
@@ -208,9 +208,9 @@
   #+count-gf-calls
   (progn
     (lock)
-    (addq ($ x8664::fixnumone) (@ 'hash (% fn))))
+    (addq ($ x8664::fixnumone) (@ 'hash (% nfn))))
   (check-nargs 2)
-  (movq (@ 'dispatch-table (% fn)) (% arg_x))
+  (movq (@ 'dispatch-table (% nfn)) (% arg_x))
   (set-nargs 3)
   (jump-function (@ 'dcode (% nfn))))
 
