@@ -482,6 +482,7 @@ create_exception_callback_frame(ExceptionInformation *xp, TCR *tcr)
 
   f = xpGPR(xp,Ifn);
   tra = *(LispObj*)(xpGPR(xp,Isp));
+#ifdef X8632
   if (tra_p(tra)) {
     char *p = (char *)tra;
     extern char *spentry_start, *spentry_end;
@@ -493,6 +494,7 @@ create_exception_callback_frame(ExceptionInformation *xp, TCR *tcr)
     else
       Bug(xp, "martian tra %p\n", tra);
   }
+#endif
   abs_pc = (LispObj)xpPC(xp);
 #if WORD_SIZE == 64
   pc_high = ((abs_pc >> 32) & 0xffffffff) << fixnumshift;
@@ -502,7 +504,7 @@ create_exception_callback_frame(ExceptionInformation *xp, TCR *tcr)
   pc_low = (abs_pc & 0xffff) << fixnumshift;
 #endif
 
-
+#ifdef X8632
   if (functionp(f))
     nominal_function = f;
   else if (tra_f)
@@ -530,6 +532,19 @@ create_exception_callback_frame(ExceptionInformation *xp, TCR *tcr)
   } else {
     containing_uvector = lisp_nil;
   }
+#else
+  nominal_function = f;
+  if (nominal_function) {
+    LispObj code_vector = deref(nominal_function, 1);
+    if (object_contains_pc(code_vector, abs_pc)) {
+      containing_uvector = untag(nominal_function)+fulltag_misc;
+      relative_pc = (abs_pc - (LispObj)&(deref(code_vector,1))) << fixnumshift;
+    } else {
+      containing_uvector = lisp_nil;
+    }
+  }
+#endif
+  
   push_on_lisp_stack(xp, pc_high);
   push_on_lisp_stack(xp, pc_low);
   push_on_lisp_stack(xp,(LispObj)(tcr->xframe->prev));

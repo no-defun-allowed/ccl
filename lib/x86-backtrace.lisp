@@ -56,10 +56,13 @@
 	   #+x8632-target x8632::fulltag-misc
 	   #+x8664-target x8664::tag-function)
         (let* ((tra (%fixnum-ref xcf target::xcf.ra0)))
-          (if (and #+x8664-target (= (lisptag tra) x8664::tag-tra)
-		   #+x8632-target (= (fulltag tra) x8632::fulltag-tra)
+          #+x8632-target
+          (if #+x8632-target
+              (and (= (fulltag tra) x8632::fulltag-tra)
                    (eq nominal-function (%return-address-function tra)))
-            (%return-address-offset tra)))))))
+              (%return-address-offset tra))
+          #+x8664-target
+          (%fixnum-ref xcf target::xcf.relative-pc))))))
             
 (defun cfp-lfun (p)
   (if (xcf-p p)
