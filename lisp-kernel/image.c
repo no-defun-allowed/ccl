@@ -615,10 +615,10 @@ save_application_internal(unsigned fd, Boolean egc_was_enabled)
 
   areas[0] = nilreg_area; 
   areas[1] = readonly_area;
-  areas[2] = active_dynamic_area;
-  areas[3] = managed_static_area;
-  areas[4] = static_cons_area;
-  areas[5] = code_area;
+  areas[2] = code_area;
+  areas[3] = active_dynamic_area;
+  areas[4] = managed_static_area;
+  areas[5] = static_cons_area;
   for (i = 0; i < NUM_IMAGE_SECTIONS; i++) {
     a = areas[i];
     sections[i].code = a->code;
