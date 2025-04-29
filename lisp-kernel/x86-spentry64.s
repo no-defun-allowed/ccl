@@ -356,7 +356,7 @@ local_label(misc_ref_jmp):
 	.quad local_label(misc_ref_invalid) /* 92 imm_2   */
 	.quad local_label(misc_ref_invalid) /* 93 cons   */
 	.quad local_label(misc_ref_invalid) /* 94 tra_0   */
-	.quad local_label(misc_ref_function) /* 95 function_vector   */
+        .quad local_label(misc_ref_node)    /* 95 function_vector   */
 	.quad local_label(misc_ref_invalid) /* 96 nodeheader_1   */
 	.quad local_label(misc_ref_complex_double_float_vector) /* 97 complex_double_float_vector   */
 	.quad local_label(misc_ref_invalid) /* 98 odd_fixnum   */
@@ -808,7 +808,7 @@ local_label(misc_set_jmp):
 	.quad local_label(misc_set_invalid) /* 92 imm_2   */
 	.quad local_label(misc_set_invalid) /* 93 cons   */
 	.quad local_label(misc_set_invalid)	/* 94 tra_0   */
-	.quad local_label(misc_set_function) /* 95 function_vector   */
+        .quad _SPgvset                      /* 95 function_vector   */
 	.quad local_label(misc_set_invalid) /* 96 nodeheader_1   */
 	.quad local_label(misc_set_complex_double_float_vector) /* 97 complex_double_float_vector   */
 	.quad local_label(misc_set_invalid)	/* 98 odd_fixnum   */
@@ -922,14 +922,6 @@ local_label(misc_set_jmp):
 	.quad local_label(misc_set_invalid)	/* fe symbol   */
 	.quad local_label(misc_set_invalid)	/* ff function   */
 
-local_label(misc_set_function):			
-	/* Functions are funny: the first  N words  */
-	/* are treated as (UNSIGNED-BYTE 64), where N is the low  */
-	/* 32 bits of the first word.   */
-	__(movl misc_data_offset(%arg_x),%imm0_l)
-	__(shl $fixnumshift,%imm0)
-	__(rcmpq(%arg_y,%imm0))
-	__(jae _SPgvset)
 local_label(misc_set_u64):
 	__(movq $~(target_most_positive_fixnum << fixnumshift),%imm0)
 	__(testq %arg_z,%imm0)
