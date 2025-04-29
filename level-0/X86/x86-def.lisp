@@ -411,6 +411,7 @@
   (movq (% args) (% arg_y))             ; in case of error
   (set-nargs 0)
   (push-reserved-frame)                 ; might discard it if nothing is passed on stack
+  (xorl (% imm0.l) (% imm0.l))          ; imm0 counts arguments
   (cmp-reg-to-nil arg_z)
   (je @done)
   @loop
