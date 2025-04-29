@@ -1519,7 +1519,7 @@
       (declare (fixnum target-offset))
       (do-dll-nodes (frag frag-list)
         (incf target-offset (frag-output-bytes frag code-vector target-offset))))
-    (let* ((function-vector (allocate-typed-vector :function (1+ nconstants)))
+    (let* ((function-vector (%alloc-misc (1+ nconstants) target::subtag-function))
            (last (1- (uvsize function-vector))))
       (declare (fixnum last))
       (setf (uvref function-vector 0) (%code-vector-to-entrypoint code-vector))

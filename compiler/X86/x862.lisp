@@ -3476,6 +3476,7 @@
                   (progn 
                     (if label-p
                       (progn
+                        (target-arch-case (:x8664 (! copy-nfn-from-fn)))
                         (! call-label (aref *backend-labels* 2)))
                       (progn
                         (if a-reg
