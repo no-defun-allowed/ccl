@@ -5238,10 +5238,12 @@
   ((:pred >= maxval 128)
    (cmpq (:$l maxval) (:%q idx))))
 
+#+(or)
 (define-x8664-vinsn (ijmp ) (((idx :u32))
                                     ((idx :u32)
                                      (count :u32const))
                                     ((rjmp :lisp)))
+  ;; This can't possibly work, we can't treat RIP like this.
   (movl (:@ (:^ :jtab) (:%q x8664::rip) (:%q idx) 4) (:%l idx))
   (leaq (:@ (:%q x8664::rip) (:%q idx)) (:%q rjmp))
   (jmp (:%q rjmp))
@@ -5250,7 +5252,7 @@
   (:long count)
   :jtab)
   
-
+#+(or)
 (define-x8664-vinsn jtabentry (()
                                ((label :label)))
   (:uuo-section)

@@ -8487,7 +8487,8 @@
         (<- ($ *x862-arg-z*))
         (^)))))
 
-(defparameter *x862-generate-casejump* t)
+;; XXX: I don't have a good idea of how to pull this off yet.
+(defparameter *x862-generate-casejump* nil)
 
 (defun x862-generate-casejump (seg vreg xfer ranges trueforms var otherwise)
   (when (and *x862-generate-casejump* (not *backend-use-linear-scan*))
@@ -8514,7 +8515,6 @@
                                 (setq max val)))
                             (incf count))
                     (return nil))))
-
             (let* ((span (1+ (- max min))))
               (when (and (typep min '(signed-byte 32))
                          (typep span '(unsigned-byte 31)) ;sic
