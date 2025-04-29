@@ -53,7 +53,7 @@ static struct buffer buffer_init() {
 static void buffer_emit(struct buffer* b, natural n, const char *data) {
   if (b->pos + n > b->end) {
     natural new_end = b->end * 2;
-    b->start = realloc(b->start, b->end);
+    b->start = realloc(b->start, new_end);
     if (!b->start) Bug(NULL, "realloc failed");
     b->end = new_end;
   }
