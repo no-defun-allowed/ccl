@@ -156,12 +156,6 @@
        (= x8664::subtag-symbol (typecode (%symptr->symvector thing))))
       (#.x8664::fulltag-misc
        (valid-subtag-p (typecode thing)))
-      ((#.x8664::fulltag-tra-0
-        #.x8664::fulltag-tra-1)
-       (let* ((disp (%return-address-offset thing)))
-         (and disp
-              (let* ((f (%return-address-function thing)))
-                (and (typep f 'function) (valid-header-p f))))))
       (#.x8664::fulltag-cons t)
       (#.x8664::fulltag-nil (null thing))
       (t nil))))
@@ -199,8 +193,6 @@
                       (and (or (typep x 'function)
                                (typep x 'gvector))
                            (on-any-tsp-stack x))
-                      (and (eql tag x8664::tag-tra)
-                           (eql 0 (%return-address-offset x)))
                       (and (typep x 'ivector)
                            (on-any-csp-stack x))
                       (%heap-ivector-p x))
