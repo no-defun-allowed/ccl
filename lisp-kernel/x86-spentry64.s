@@ -1167,7 +1167,7 @@ _endsubp(jmpsym)
 
 _spentry(jmpnfn)
 	__(movq %temp0,%nfn)
-	__(jmp function.entrypoint(%fn))
+	__(jmp *function.entrypoint(%fn))
 _endsubp(jmpnfn)
 
 _spentry(funcall)
@@ -2792,13 +2792,13 @@ _spentry(tcallnfngen)
 	__(movq lisp_frame.savera0(%rbp),%ra0)
 	__(movq lisp_frame.backlink(%rbp),%rbp)
         __(pushq %ra0)
-	__(jmp function.entrypoint(%nfn))
+	__(jmp *function.entrypoint(%nfn))
 /* All args in regs; exactly the same as the tcallnfnvsp case   */
 9:		
 	__(movq %temp0,%nfn)
         __(movq lisp_frame.savefn(%rbp),%fn)
 	__(leave)
-	__(jmp function.entrypoint(%nfn))
+	__(jmp *function.entrypoint(%nfn))
 _endsubp(tcallnfngen)
 
 _spentry(tcallnfnslide)
@@ -2818,14 +2818,14 @@ _spentry(tcallnfnslide)
 	__(movq lisp_frame.savera0(%rbp),%ra0)
 	__(movq lisp_frame.backlink(%rbp),%rbp)
         __(pushq %ra0)
-	__(jmp function.entrypoint(%nfn))
+	__(jmp *function.entrypoint(%nfn))
 _endsubp(tcallnfnslide)
 
 _spentry(tcallnfnvsp)
 	__(movq %temp0,%nfn)
         __(movq -node_size(%rbp),%fn)
 	__(leave)
-	__(jmp function.entrypoint(%nfn))
+	__(jmp *function.entrypoint(%nfn))
 _endsubp(tcallnfnvsp)
 
 
@@ -5221,7 +5221,7 @@ local_label(set_arg_z):
 local_label(go):        
         __(push %ra0)
         __(movq misc_data_offset+node_size(%temp0),%nfn)
-        __(jmp function.entrypoint(%nfn))
+        __(jmp *function.entrypoint(%nfn))
 local_label(regs_only):
         __(leaq 2<<fixnumshift(%imm0),%temp1)
         __(testl %nargs,%nargs)
@@ -5236,7 +5236,7 @@ local_label(regs_only):
 local_label(rgo):
         __(addw %imm0_w,%nargs_w)
         __(movq misc_data_offset+node_size(%temp0),%nfn)
-        __(jmp function.entrypoint(%nfn))
+        __(jmp *function.entrypoint(%nfn))
 local_label(some_args):         
         __(cmpl $2*node_size,%nargs)
         __(jz local_label(rtwo))

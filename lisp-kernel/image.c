@@ -205,6 +205,7 @@ load_image_section(int fd, openmcl_image_section_header *sect)
 {
   extern area* allocate_dynamic_area(natural);
   extern void *allocate_from_reserved_area(natural);
+  extern void print_area_symbols(area*);
   off_t
     pos = seek_to_next_page(fd), advance;
   natural

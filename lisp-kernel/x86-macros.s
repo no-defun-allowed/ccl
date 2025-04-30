@@ -366,7 +366,7 @@ define(`vrefr',`
 ')	
 
 define(`jump_fn',`
-	__(jmp function.entrypoint(%nfn))
+	__(jmp *function.entrypoint(%nfn))
 ')
 			
 define(`jump_fname',`
@@ -456,7 +456,7 @@ define(`do_funcall',`
 	__(cmovgq %temp0,%nfn)
 	jl macro_label(bad)
 	__(cmoveq symbol.fcell(%fname),%nfn)
-	__(jmp function.entrypoint(%nfn))
+	__(jmp *function.entrypoint(%nfn))
 macro_label(bad):		
 	__(uuo_error_not_callable)
 ')')

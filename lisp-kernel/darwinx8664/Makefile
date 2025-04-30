@@ -48,7 +48,7 @@ ASMOBJ = x86-asmutils64.o imports.o
 COBJ  = pmcl-kernel.o gc-common.o x86-gc.o bits.o  x86-exceptions.o \
 	x86-utils.o \
 	thread_manager.o lisp-debug.o image.o memory.o unix-calls.o \
-	mach-o-image.o
+	mach-o-image.o gdb.o
 
 DEBUGOBJ = lispdcmd.o plprint.o plsym.o xlbt.o x86_print.o
 KERNELOBJ= imports.o $(COBJ) x86-asmutils64.o mach_exc_server.o
