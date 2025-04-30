@@ -38,6 +38,12 @@
   (subb ($ (- 15 x8664::fulltag-misc)) (% arg_z.b))
   (single-value-return))
 
+(defx86lapfunction call-closure-trampoline ()
+  ;; Add another layer of indirection, since we don't want to
+  ;; hard-code the actual address of _SPcall_closure into an
+  ;; image.
+  (jmp (@ .SPcall-closure)))
+
 (defun %function-code-words (fun)
   (declare (ignore fun))
   ;; There's now just the one "code" word for the entrypoint.

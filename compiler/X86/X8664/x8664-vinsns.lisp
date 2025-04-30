@@ -2452,12 +2452,17 @@
   (:anchored-uuo (uuo-error-not-callable)))
 
 
+(defun call-closure-trampoline-offset ()
+  (function-constant-offset (x86-immediate-label 'call-closure-trampoline)))
 
 (define-x8664-vinsn init-nclosure (()
                                    ((closure :lisp))
-                                   ((imm0 :u64)))
-  (movq (:@ .SPcall-closure) (:%q imm0))
-  (movq (:%q imm0) (:@ (+ x8664::misc-data-offset 0) (:%q closure))))
+                                   ((temp0 :lisp)))
+  ;; Copy the entrypoint of CALL-CLOSURE-TRAMPOLINE to the closure.
+  (movq (:@ (:apply call-closure-trampoline-offset) (:%q x8664::fn)) (:%q temp0))
+  (movq (:@ x8664::symbol.fcell (:%q temp0)) (:%q temp0))
+  (movq (:@ x8664::function.entrypoint (:%q temp0)) (:%q temp0))
+  (movq (:%q temp0) (:@ x8664::misc-data-offset (:%q closure))))
 
 (define-x8664-vinsn finalize-closure (((closure :lisp))
                                       ((closure :lisp)))
