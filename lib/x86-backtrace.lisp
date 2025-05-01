@@ -86,7 +86,8 @@
     (if (and (>= idx 0)
              (< idx raw-size))
       (let* ((addr (- (the fixnum (1- base))
-                      idx)))
+                      idx
+                      #+x8664-target 1)))
         (multiple-value-bind (db-count first-db last-db)
             (count-db-links-in-frame frame base context)
           (let* ((is-db-link

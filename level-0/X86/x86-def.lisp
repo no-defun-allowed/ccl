@@ -264,8 +264,13 @@
   (movl ($ (target-nil-value)) (% arg_z.l))
   (single-value-return))
 
-(defx86lapfunction %return-address-offset ((r arg_z))
-  (movl ($ (target-nil-value)) (% arg_z.l))
+(defx86lapfunction %return-address-offset ((ra arg_y) (p arg_z))
+  (check-nargs 2)
+  (movq (@ -8 (% p)) (% temp0))
+  (movq (@ x8664::function.entrypoint (% temp0)) (% imm0))
+  (movq (% ra) (% imm1))
+  (subq (% imm0) (% imm1))
+  (imulq ($ 8) (% imm1) (% arg_z))
   (single-value-return))
 
 ;;; It's always been the case that the function associated with a
@@ -274,7 +279,7 @@
   (let* ((ra (%fixnum-ref p x8664::lisp-frame.return-address)))
     (if (eq ra (%get-kernel-global ret1valaddr))
       (setq ra (%fixnum-ref p x8664::lisp-frame.xtra)))
-    (values (%fixnum-ref p -8) (%return-address-offset ra))))
+    (values (%return-address-function p) (%return-address-offset ra p))))
 
 
 
