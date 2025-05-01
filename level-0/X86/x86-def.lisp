@@ -252,38 +252,19 @@
   (movq (@ (% arg_z)) (% arg_z))
   (single-value-return))
 
-;;; Look for "lea -nnnn(%rip),%fn" AT the tra; if that's present, use
-;;; the dispacement -nnnn to find the function.  The end of the
-;;; encoded displacement is
-;;; x8664::recover-fn-from-rip-disp-offset (= 7) bytes from the tra.
+;;; Look for a function at [RBP - 8].
 (defx86lapfunction %return-address-function ((r arg_z))
-  (extract-lisptag r imm0)
-  (cmpb ($ x8664::tag-tra) (% imm0.b))
+  (check-nargs 1)
+  (movq (@ -8 (% arg_z)) (% arg_z))
+  (extract-fulltag arg_z imm0)
+  (cmpb ($ x8664::fulltag-function) (% imm0.b))
   (jne @fail)
-  (cmpw ($ x8664::recover-fn-from-rip-word0) (@ (% r)))
-  (jne @fail)
-  (cmpb ($ x8664::recover-fn-from-rip-byte2) (@ 2 (% r)))
-  (movslq (@ x8664::recover-fn-from-rip-disp-offset (% r)) (% imm0))
-  (jne @fail)
-  (lea (@ x8664::recover-fn-from-rip-length (% imm0) (% r)) (% arg_z))
   (single-value-return)
   @fail
   (movl ($ (target-nil-value)) (% arg_z.l))
   (single-value-return))
 
 (defx86lapfunction %return-address-offset ((r arg_z))
-  (extract-lisptag r imm0)
-  (cmpb ($ x8664::tag-tra) (% imm0.b))
-  (jne @fail)
-  (cmpw ($ x8664::recover-fn-from-rip-word0) (@ (% r)))
-  (jne @fail)
-  (cmpb ($ x8664::recover-fn-from-rip-byte2) (@ 2 (% r)))
-  (movslq (@ x8664::recover-fn-from-rip-disp-offset (% r)) (% imm0))
-  (jne @fail)
-  (negq (% imm0))
-  (leaq (@ (- (ash x8664::recover-fn-from-rip-length x8664::fixnumshift)) (% imm0) 8) (% arg_z))
-  (single-value-return)
-  @fail
   (movl ($ (target-nil-value)) (% arg_z.l))
   (single-value-return))
 
@@ -293,7 +274,7 @@
   (let* ((ra (%fixnum-ref p x8664::lisp-frame.return-address)))
     (if (eq ra (%get-kernel-global ret1valaddr))
       (setq ra (%fixnum-ref p x8664::lisp-frame.xtra)))
-    (values (%return-address-function ra) (%return-address-offset ra))))
+    (values (%fixnum-ref p -8) (%return-address-offset ra))))
 
 
 
