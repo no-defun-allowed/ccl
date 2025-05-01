@@ -533,15 +533,20 @@ create_exception_callback_frame(ExceptionInformation *xp, TCR *tcr)
     containing_uvector = lisp_nil;
   }
 #else
-  nominal_function = f;
-  if (nominal_function) {
-    LispObj code_vector = deref(nominal_function, 1);
-    if (object_contains_pc(code_vector, abs_pc)) {
-      containing_uvector = untag(nominal_function)+fulltag_misc;
-      relative_pc = (abs_pc - (LispObj)&(deref(code_vector,1))) << fixnumshift;
-    } else {
-      containing_uvector = lisp_nil;
-    }
+  LispObj nfn = xpGPR(xp,Infn);
+  if (functionp(f) && object_contains_pc(deref(f, 1), abs_pc)) {
+    nominal_function = f;
+  } else if (functionp(nfn) && object_contains_pc(deref(nfn, 1), abs_pc)) {
+    nominal_function = nfn;
+  } else {
+    nominal_function = lisp_nil;
+    containing_uvector = lisp_nil;
+  }
+  if (nominal_function != lisp_nil) {
+    /* Retag to make the code vector a code vector. */
+    LispObj code_vector = untag(deref(nominal_function, 1)) + fulltag_misc;
+    containing_uvector = code_vector;
+    relative_pc = (abs_pc - (LispObj)&(deref(code_vector,1))) << fixnumshift;
   }
 #endif
   
