@@ -3052,6 +3052,7 @@
         (do-dll-nodes (instruction (x86-dis-block-instructions block))
           (setq seq (funcall collect-function ds instruction seq function)))))))
 
+#+x8632-target
 (defun x86-xdisassemble (function
                          &optional (collect-function #'x86-print-disassembled-instruction)
                                    (header-function #'x86-print-disassembled-function-header))
@@ -3074,6 +3075,24 @@
                                      :header-function header-function))
       (declare (fixnum j k))
       (setf (uvref xfunction j) (uvref fv k)))))
+
+#+x8664-target
+(defun x86-xdisassemble (function
+                         &optional (collect-function #'x86-print-disassembled-instruction)
+                                   (header-function #'x86-print-disassembled-function-header))
+  (let* ((fv (function-to-function-vector function))
+         (function-size (uvsize fv))
+         (code-bytes (%entrypoint-to-code-vector (uvref fv 0)))
+         (xfunction (%alloc-misc function-size target::subtag-xfunction)))
+    (setf (uvref xfunction 0) code-bytes)
+    (do* ((n 1 (1+ n)))
+         ((= n function-size)
+          (x86-disassemble-xfunction function xfunction
+                                     :collect-function collect-function
+                                     :header-function header-function))
+      (declare (fixnum n))
+      (setf (uvref xfunction n) (uvref fv n)))))
+
 
 (defun disassemble-list (function)
   (collect ((instructions))
