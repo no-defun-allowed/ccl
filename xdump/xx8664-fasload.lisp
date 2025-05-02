@@ -27,10 +27,11 @@
   (let* ((f (%define-x86-lap-function nil instructions)))
     (if (= (typecode f) target::subtag-xfunction)
       (uvref f 0)
-      f)))
+      (%entrypoint-to-code-vector
+       (uvref (%function-to-function-vector f) 0)))))
 
 (defparameter *x8664-macro-apply-code*
-  #xc9cd0000000000)
+  #(#xcd #xc9))
 
 
 (defun x8664-fixup-macro-apply-code ()
@@ -44,7 +45,7 @@
 
 ;;; For now, do this with a UUO so that the kernel can catch it.
 (defparameter *x8664-udf-code*
-  #xc7cd0000000000)
+  #(#xcd #xc7))
 
 
 (defun x8664-initialize-static-space ()

@@ -346,8 +346,11 @@
 
 
 
-(defun  %xload-unbound-function% ()
-  (+ *xload-dynamic-space-address* *xload-target-fulltag-misc*))
+(defun %xload-unbound-function% ()
+  (+ *xload-dynamic-space-address*
+     (target-arch-case
+      (:x8664 *xload-target-fulltag-for-functions*)
+      (otherwise *xload-target-fulltag-misc*))))
 
 (defparameter *xload-dynamic-space* nil)
 (defparameter *xload-readonly-space* nil)
@@ -684,6 +687,15 @@
       (setf (u32-ref v (the fixnum (+ offset (the fixnum (+ *xload-target-misc-data-offset* (the fixnum (ash i 2))))))) new))
     (error "Not a vector: #x~x" addr)))
 
+(defun (setf xload-%u8-ref) (new addr i)
+  (declare (fixnum i))
+  (if (= (the fixnum (logand addr *xload-target-fulltagmask*))
+         *xload-target-fulltag-misc*)
+    (multiple-value-bind (v offset) (xload-lookup-address addr)
+      (declare (fixnum offset))
+      (setf (u8-ref v (the fixnum (+ offset (the fixnum (+ *xload-target-misc-data-offset* i))))) new))
+    (error "Not a vector: #x~x" addr)))
+
 (defun xload-car (addr)
   (if (xload-target-listp addr)
     (multiple-value-bind (v offset) (xload-lookup-address addr)
@@ -989,6 +1001,13 @@
          (dotimes (i len str)
            (setf (schar str i) (code-char (u32-ref v (+ p (* i 4)))))))))))
 
+
+(defun xload-retag-code-vector (vector)
+  (logior (logandc2 vector *xload-target-fulltagmask*)
+          *xload-target-fulltag-for-functions*))
+(defun xload-retag-function (function)
+  (logior (logandc2 function *xload-target-fulltagmask*)
+          *xload-target-fulltag-for-functions*))
                
 (defun xload-save-code-vector (code)
   (let* ((read-only-p *xload-pure-code-p*)
@@ -997,24 +1016,35 @@
                                                    *target-backend*)))
          (n (+ (length prefix) vlen)))
     (declare (fixnum n))
-    (let* ((vector (xload-make-ivector
-                    (target-arch-case
-                     (:x8664 *xload-code-space*)
-                     (otherwise
+    (let* ((vector (target-arch-case
+                    (:x8664
+                     ;; Instructions start after a 7-byte offset.
+                     (xload-make-ivector
+                      *xload-code-space*
+                      :code-vector (+ n 7)))
+                    (otherwise
+                     (xload-make-ivector
                       (if read-only-p
                           *xload-readonly-space*
-                          *xload-dynamic-space*)))
-                    :code-vector
-                    n))
+                          *xload-dynamic-space*)
+                      :code-vector n))))
            (j -1))
       (declare (fixnum j))
-      (dotimes (i n)
-        ;; XXX: x8664 code vectors are (UNSIGNED-BYTE 8) vectors.
-        ;; This is not how you copy into one.
-        (setf (xload-%fullword-ref vector i)
-              (if prefix
-                (pop prefix)
-                (uvref code (incf j)))))
+      (target-arch-case
+       (:x8664
+        (dotimes (i n)
+          (setf (xload-%u8-ref vector (+ i 7))
+                (if prefix
+                    (pop prefix)
+                    (uvref code (incf j)))))
+        ;; Re-tag to an entrypoint.
+        (setf vector (xload-retag-code-vector vector)))
+       (otherwise
+        (dotimes (i n)
+          (setf (xload-%fullword-ref vector i)
+                (if prefix
+                    (pop prefix)
+                    (uvref code (incf j)))))))
       vector)))
                           
 ;;; For debugging
@@ -1072,6 +1102,15 @@
                   *xload-target-backend*)))
           (locally (declare (ftype (function (t) t) xload-arm-set-entrypoint))
             (xload-arm-set-entrypoint udf-object))))
+       (:x8664
+        ;; Create an unnamed function on x8664.
+        (let* ((udf-object (xload-make-gvector :function 2)))
+          (setf (xload-%svref udf-object 0)
+                (xload-save-code-vector
+                 (backend-xload-info-udf-code
+                  *xload-target-backend*))
+                (xload-%svref udf-object 1)
+                (xload-integer (ash -1 $lfbits-noname-bit)))))
        (otherwise
         ;; The undefined-function object is a 1-element simple-vector (not
         ;; a function vector).  The code-vector in its 0th element should
@@ -1615,6 +1654,10 @@
                *xload-readonly-space*)))
          subtag
          element-count)
+      (target-arch-case
+       (:x8664
+        ;; Re-tag to an entrypoint.
+        (setf vector (xload-retag-code-vector vector))))
       (%epushval s vector)
       (%fasl-read-n-bytes s v (+ o
                                  *xload-target-misc-data-offset*)
@@ -1624,16 +1667,21 @@
 (defun xfasl-read-gvector (s subtype)
   (declare (fixnum subtype))
   (let* ((n (%fasl-read-count s))
-         (vector (xload-make-gvector subtype n)))
-    (%epushval s vector)
-    (dotimes (i n )
+         (vector (xload-make-gvector subtype n))
+         (retagged vector))
+    (target-arch-case
+     (:x8664
+      (when (= subtype (xload-target-subtype :function))
+        (setf retagged (xload-retag-function vector)))))
+    (%epushval s retagged)
+    (dotimes (i n)
       (setf (xload-%svref vector i) (%fasl-expr s)))
     (target-arch-case
      (:arm
       (when (= subtype (xload-target-subtype :function))
         (locally (declare (ftype (function (t) t) xload-arm-set-entrypoint))
           (xload-arm-set-entrypoint vector)))))
-    (setf (faslstate.faslval s) vector)))
+    (setf (faslstate.faslval s) retagged)))
   
 (defxloadfaslop $fasl-vgvec (s)
   (let* ((subtype (%fasl-read-byte s)))
@@ -1667,17 +1715,7 @@
   (xfasl-read-gvector s (xload-target-subtype :simple-vector)))
 
 (defxloadfaslop $fasl-function (s)
-  (let ((f (xfasl-read-gvector s (xload-target-subtype :function))))
-    (target-arch-case
-     (:x8664
-      ;; Re-tag the entrypoint.
-      (setf (xload-%svref f 0)
-            (logior (logandc2 (xload-%svref f 0) *xload-target-fulltagmask*)
-                    *xload-target-fulltag-for-functions*))
-      (setf (faslstate.faslval s)
-            (logior (logandc2 f *xload-target-fulltagmask*)
-                    *xload-target-fulltag-for-functions*)))
-     (otherwise f))))
+  (xfasl-read-gvector s (xload-target-subtype :function)))
 
 (defxloadfaslop $fasl-istruct (s)
   (xfasl-read-gvector s (xload-target-subtype :istruct)))
