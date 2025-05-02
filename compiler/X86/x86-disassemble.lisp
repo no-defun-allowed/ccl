@@ -2827,8 +2827,13 @@
                      (integer
                       (+ (x86-ds-entry-point ds) disp))
                      (t nil)))))
-    (when (and code-limit val (>= val code-limit))
-      (- val code-limit))))
+    (target-arch-case
+     (:x8632
+      (when (and code-limit val (>= val code-limit))
+        (- val code-limit)))
+     (:x8664
+      (when (and val (< (ash val -3) (uvsize (x86-ds-constants-vector ds))))
+        (- val 8))))))
 
 (defun x86-lap-operand-constant (op ds)
   (let ((diff (x86-lap-operand-constant-offset op ds)))
