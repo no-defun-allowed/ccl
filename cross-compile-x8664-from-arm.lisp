@@ -128,7 +128,6 @@
 
 (mapc #'require '(:x8664-arch :x8632-arch :x862 :x8664-backend :xfasload))
 (load "ccl:xdump;heap-image.lisp")
-(load "ccl:xdump;xx8664-fasload.lisp")
 (cross-compile-ccl :linuxx8664)
 
 (defun cross-xload-level-0 (target &optional (recompile t))
@@ -136,6 +135,7 @@
     (let* ((*target-backend* (find-backend target)))
       (require-module 'x8664-vinsns t)
       (require-module 'ffi-linuxx8664 t)
+      (load "ccl:xdump;xx8664-fasload.lisp")
       (target-xload-level-0 target recompile))))
 
 (setf *x862-generate-casejump* nil)

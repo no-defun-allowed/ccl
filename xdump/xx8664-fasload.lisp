@@ -25,10 +25,10 @@
 
 (defun xload-x8664-lap-code (instructions)
   (let* ((f (%define-x86-lap-function nil instructions)))
-    (if (= (typecode f) target::subtag-xfunction)
-      (uvref f 0)
+    (if (functionp f)
       (%entrypoint-to-code-vector
-       (uvref (%function-to-function-vector f) 0)))))
+       (uvref (%function-to-function-vector f) 0))
+      (uvref f 0))))
 
 (defparameter *x8664-macro-apply-code*
   #(#xcd #xc9))
