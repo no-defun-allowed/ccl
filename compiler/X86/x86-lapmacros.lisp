@@ -462,13 +462,15 @@
 	 ,done)))))
 
 
-(defx86lapmacro restore-simple-frame ()
+(defx86lapmacro restore-simple-frame (&key (restore-fn t))
   (target-arch-case
    (:x8632
     `(leave))
    (:x8664
     `(progn
-       (movq (@ (- x8664::node-size) (% rbp)) (% fn))
+       ,(if restore-fn
+            '(movq (@ (- x8664::node-size) (% rbp)) (% fn))
+            '(progn))
        (leave)))))
 
 (defx86lapmacro discard-reserved-frame ()

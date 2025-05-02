@@ -579,7 +579,7 @@
   (movq (% rax) (@ 8 (% frame)))
   (movq (% fp0) (@ 16 (% frame)))
   (movl ($ nil) (%l arg_z))
-  (restore-simple-frame)
+  (restore-simple-frame :restore-fn nil)
   (single-value-return))
 
 #+win64-target
@@ -621,7 +621,7 @@
   (movq (% mm5) (@ (% frame)))
   (movq (% frame) (:rcontext x8664::tcr.foreign-sp))
   (movl ($ nil) (%l arg_z))
-  (restore-simple-frame)
+  (restore-simple-frame :restore-fn nil)
   (single-value-return))
   
 #-win64-target
