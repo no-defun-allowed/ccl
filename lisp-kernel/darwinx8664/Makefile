@@ -45,7 +45,7 @@ PLATFORM_H = platform-darwinx8664.h
 SPOBJ = x86-spjump64.o x86-spentry64.o x86-subprims64.o 
 ASMOBJ = x86-asmutils64.o imports.o
 
-COBJ  = pmcl-kernel.o gc-common.o x86-gc.o bits.o  x86-exceptions.o \
+COBJ  = pmcl-kernel.o gc-common.o x86-gc.o code-gc.o bits.o x86-exceptions.o \
 	x86-utils.o \
 	thread_manager.o lisp-debug.o image.o memory.o unix-calls.o \
 	mach-o-image.o gdb.o

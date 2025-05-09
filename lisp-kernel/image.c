@@ -346,6 +346,7 @@ load_image_section(int fd, openmcl_image_section_header *sect)
     a->active = a->low + mem_size;
     sect->area = a;
     code_area = a;
+    init_code_area(a);
     break;
 
   default:

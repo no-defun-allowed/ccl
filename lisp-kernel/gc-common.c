@@ -2050,13 +2050,3 @@ new_heap_segment(ExceptionInformation *xp, natural need, Boolean extend, TCR *tc
 
   return true;
 }
-
-LispObj allocate_in_code_area(natural bytes) {
-  natural bytes_needed = align_to_power_of_2(8 + bytes, 4);
-  char *last = code_area->active;
-  if (code_area->active + bytes_needed > code_area->high)
-    Bug(NULL, "Out of code area");
-  code_area->active += bytes_needed;
-  *(LispObj*)last = make_header(subtag_u8_vector, bytes);
-  return (LispObj)last | fulltag_misc;
-}

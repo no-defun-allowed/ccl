@@ -50,7 +50,7 @@ NO_PIE = $(shell ($(LD) --help 2>&1 | grep -q -e "-no-pie") && /bin/echo "-Wl,-n
 SPOBJ = pad.o x86-spjump64.o x86-spentry64.o x86-subprims64.o
 ASMOBJ = x86-asmutils64.o imports.o
 
-COBJ  = pmcl-kernel.o gc-common.o x86-gc.o bits.o  x86-exceptions.o \
+COBJ  = pmcl-kernel.o gc-common.o x86-gc.o code-gc.o bits.o x86-exceptions.o \
 	x86-utils.o \
 	image.o thread_manager.o lisp-debug.o memory.o unix-calls.o gdb.o
 

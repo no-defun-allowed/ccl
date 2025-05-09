@@ -85,6 +85,7 @@ void delete_protected_area(protected_area_ptr);
 Boolean egc_control(Boolean, BytePtr);
 Boolean new_heap_segment(ExceptionInformation *, natural, Boolean , TCR *, Boolean *);
 void platform_new_heap_segment(ExceptionInformation *, TCR*, BytePtr, BytePtr);
+void init_code_area(area *);
 /* an type representing 1/4 of a natural word */
 #if WORD_SIZE == 64
 typedef unsigned short qnode;

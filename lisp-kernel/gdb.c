@@ -129,5 +129,20 @@ void print_all_symbols()
   print_area_symbols_to_buffer(active_dynamic_area, &b);
   print_area_symbols_to_buffer(g1_area, &b);
   print_area_symbols_to_buffer(g2_area, &b);
+  print_area_symbols_to_buffer(readonly_area, &b);
   commit_buffer(&b);
+}
+
+void count_sizes()
+{
+  LispObj *start = (LispObj*)code_area->low, *end = (LispObj*)code_area->active;
+  natural sizes[24] = { 0 };
+  while (start < end) {
+    LispObj header = *start;
+    natural size = header_element_count(header);
+    sizes[64 - __builtin_clzl(size - 1)]++;
+    start = (LispObj*)skip_over_ivector((natural)start, header);
+  }
+  for (int i = 0; i < 24; i++)
+    fprintf(stderr, "(%8d, %8d]: %6d\n", 2 << (i - 1), 2 << i, sizes[i]);
 }
