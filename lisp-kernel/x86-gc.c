@@ -461,6 +461,13 @@ mark_root(LispObj n)
   int tag_n = fulltag_of(n);
   natural dnode, bits, *bitsp, mask;
 
+  if (in_code_area(n)) {
+    /* Return addresses might look like immediates, so we must
+     * conservatively mark those. */
+    mark_code_vector(n, false);
+    return;
+  }
+  
   if (!is_node_fulltag(tag_n)) {
     return;
   }
@@ -662,6 +669,7 @@ rmark(LispObj n)
 
   dnode = gc_area_dnode(n);
   if (dnode >= GCndnodes_in_area) {
+    if (in_code_area(n)) mark_code_vector(n, true);
     return;
   }
 
@@ -921,7 +929,10 @@ rmark(LispObj n)
     tag_n = fulltag_of(next);
     if (!is_node_fulltag(tag_n)) goto MarkCdr;
     dnode = gc_area_dnode(next);
-    if (dnode >= GCndnodes_in_area) goto MarkCdr;
+    if (dnode >= GCndnodes_in_area) {
+      if (in_code_area(next)) mark_code_vector(next, true);
+      goto MarkCdr;
+    }
     set_bits_vars(markbits,dnode,bitsp,bits,mask);
     if (bits & mask) goto MarkCdr;
     *bitsp = (bits | mask);
@@ -943,7 +954,10 @@ rmark(LispObj n)
     tag_n = fulltag_of(next);
     if (!is_node_fulltag(tag_n)) goto Climb;
     dnode = gc_area_dnode(next);
-    if (dnode >= GCndnodes_in_area) goto Climb;
+    if (dnode >= GCndnodes_in_area) {
+      if (in_code_area(next)) mark_code_vector(next, true);
+      goto Climb;
+    }
     set_bits_vars(markbits,dnode,bitsp,bits,mask);
     if (bits & mask) goto Climb;
     *bitsp = (bits | mask);
@@ -1089,7 +1103,10 @@ rmark(LispObj n)
     if (nodeheader_tag_p(tag_n)) goto MarkVectorDone;
     if (!is_node_fulltag(tag_n)) goto MarkVectorLoop;
     dnode = gc_area_dnode(next);
-    if (dnode >= GCndnodes_in_area) goto MarkVectorLoop;
+    if (dnode >= GCndnodes_in_area) {
+      if (in_code_area(next)) mark_code_vector(next, true);
+      goto MarkVectorLoop;
+    }
     set_bits_vars(markbits,dnode,bitsp,bits,mask);
     if (bits & mask) goto MarkVectorLoop;
     *bitsp = (bits | mask);

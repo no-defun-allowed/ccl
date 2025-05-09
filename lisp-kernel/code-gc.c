@@ -23,8 +23,10 @@
 #include "lisp.h"
 #include "gc.h"
 #include "area.h"
+#include "bits.h"
 
 bitvector code_mark_ref_bits;
+code_gc_kind code_collection_kind = code_gc_in_place;
 
 void init_code_area(area *a) {
   /* see map_initial_markbits */
@@ -47,4 +49,30 @@ LispObj allocate_in_code_area(natural bytes) {
   code_area->active += bytes_needed;
   *(LispObj*)last = make_header(subtag_u8_vector, bytes);
   return (LispObj)last | fulltag_misc;
+}
+
+/* The mark-sweep algorithm is bog-standard, mark-compact uses the
+ * same Compressor-esque algorithm used in the dynamic area. */
+
+void mark_code_vector(LispObj obj, Boolean precise) {
+  natural dnode = area_dnode(obj, code_area->low);
+  switch (code_collection_kind) {
+  case code_gc_in_place:
+    set_bit(code_mark_ref_bits, dnode);
+    break;
+  case code_gc_compacting: {
+    if (!precise) Bug(NULL, "Imprecise root " LISP " during a code-precise GC", obj);
+    natural
+      header = *((natural*)ptr_from_lispobj(untag(obj))),
+      subtag = header_subtag(header),
+      element_count = header_element_count(header),
+      total_size_in_bytes = 8 + element_count,
+      total_size_in_dwords = (total_size_in_bytes+(dnode_size-1))>>dnode_shift;
+    fprintf(stderr, "dnode %ld + %d bits\n", dnode, total_size_in_dwords);
+    set_n_bits(code_mark_ref_bits, dnode, total_size_in_dwords);
+  }
+  }
+}
+
+void sweep_code_area() {
 }

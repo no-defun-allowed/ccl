@@ -85,7 +85,7 @@ void delete_protected_area(protected_area_ptr);
 Boolean egc_control(Boolean, BytePtr);
 Boolean new_heap_segment(ExceptionInformation *, natural, Boolean , TCR *, Boolean *);
 void platform_new_heap_segment(ExceptionInformation *, TCR*, BytePtr, BytePtr);
-void init_code_area(area *);
+
 /* an type representing 1/4 of a natural word */
 #if WORD_SIZE == 64
 typedef unsigned short qnode;
@@ -231,6 +231,14 @@ signed_natural impurify(TCR *, signed_natural);
 signed_natural gc_like_from_xp(ExceptionInformation *, signed_natural(*fun)(TCR *, signed_natural), signed_natural);
 Boolean mark_ephemeral_root(LispObj);
 
+typedef enum {
+  code_gc_in_place,
+  code_gc_compacting
+} code_gc_kind;
+extern code_gc_kind code_collection_kind;
+void init_code_area(area *);
+void mark_code_vector(LispObj obj, Boolean precise);
+void sweep_code_area();
 LispObj allocate_in_code_area(natural);
 
 typedef enum {
