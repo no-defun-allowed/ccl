@@ -240,6 +240,16 @@ void init_code_area(area *);
 void mark_code_vector(LispObj obj, Boolean precise);
 void sweep_code_area();
 LispObj allocate_in_code_area(natural);
+LispObj code_forwarding_address(LispObj);
+
+#ifdef X8664
+static Boolean in_code_area(LispObj where) {
+  char *p = (char*)where;
+  return code_area->low <= p && p < code_area->active;
+}
+#else
+#define in_code_area(where) false
+#endif
 
 typedef enum {
   xmacptr_flag_none = 0,        /* Maybe already disposed by Lisp */

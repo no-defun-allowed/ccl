@@ -49,14 +49,6 @@ imm_word_count(LispObj fn)
 
 /* Heap sanity checking. */
 
-#ifdef X8664
-static Boolean in_code_area(LispObj where) {
-  char *p = (char*)where;
-  return code_area->low <= p && p < code_area->active;
-}
-#else
-#define in_code_area(where) 0
-#endif
 
 void
 check_node(LispObj n)
@@ -796,7 +788,6 @@ rmark(LispObj n)
 	nmark -= code_words;
       }
 #endif
-
       while (nmark--) {
         rmark(deref(n,element_count));
         element_count--;

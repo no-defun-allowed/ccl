@@ -1022,15 +1022,16 @@ forward_weakvll_links()
 LispObj
 node_forwarding_address(LispObj node)
 {
-  int tag_n;
   natural dnode = gc_dynamic_area_dnode(node);
 
   if ((dnode >= GCndynamic_dnodes_in_area) ||
       (node < GCfirstunmarked)) {
+    if (in_code_area(node))
+      return code_forwarding_address(node);
     return node;
   }
 
-  tag_n = fulltag_of(node);
+  int tag_n = fulltag_of(node);
   if (!is_node_fulltag(tag_n)) {
     return node;
   }
@@ -1578,6 +1579,7 @@ gc(TCR *tcr, signed_natural param)
   } else {
     GCverbose = ((nrs_GC_EVENT_STATUS_BITS.vcell & gc_verbose_bit) != 0);
   }
+  GCverbose = true;
 
   if (GCephemeral_low) {
     if ((oldfree-g1_area->low) < g1_area->threshold) {
@@ -1891,6 +1893,7 @@ gc(TCR *tcr, signed_natural param)
 
     resize_dynamic_heap(a->active,
                         (GCephemeral_low == 0) ? lisp_heap_gc_threshold : 0);
+    sweep_code_area();
 
 
     /*
