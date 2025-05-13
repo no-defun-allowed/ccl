@@ -153,21 +153,19 @@ static void compact_code_area() {
       LispObj src = (LispObj)code_area->low + dnode_size * dnode;
       LispObj dest = code_forwarding_address(src);
       LispObj header = header_of(src);
-      fprintf(stderr, "found %lx/%ld (%lx) -> %lx\n", src, dnode, header, dest);
+      fprintf(stderr, "found %lx (%lx) -> %lx\n", src, header, dest);
       if (header_subtag(header) != subtag_u8_vector)
         Bug(NULL, "%lx (header %lx) does not point to a code vector", src, header);
       natural size = node_size + header_element_count(header);
-      fprintf(stderr, "moving %d bytes/%d dnodes\n", size, (size + (dnode_size - 1)) >> dnode_shift);
-      memmove(ptr_from_lispobj(dest), ptr_from_lispobj(src), size);
+      if (dest != size)
+        memmove(ptr_from_lispobj(dest), ptr_from_lispobj(src), size);
       dnode += (size + (dnode_size - 1)) >> dnode_shift;
     }
   }
 }
 
 void sweep_code_area() {
-  natural
-    highest_dnode = area_dnode(code_area->active, code_area->low),
-    bytes = align_to_power_of_2(bytes, 3);
+  natural dnodes = area_dnode(code_area->active, code_area->low);
   switch (code_collection_kind) {
   case code_gc_in_place:
     break;
@@ -177,5 +175,5 @@ void sweep_code_area() {
     compact_code_area();
   }
   }
-  memset(code_mark_ref_bits, 0, bytes);
+  zero_bits(code_mark_ref_bits, dnodes);
 }
