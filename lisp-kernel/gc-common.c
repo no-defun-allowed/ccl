@@ -1840,7 +1840,7 @@ gc(TCR *tcr, signed_natural param)
   
     forward_gcable_ptrs();
 
-
+    compact_code_area();
 
     {
       area *next_area;
@@ -1893,7 +1893,6 @@ gc(TCR *tcr, signed_natural param)
 
     resize_dynamic_heap(a->active,
                         (GCephemeral_low == 0) ? lisp_heap_gc_threshold : 0);
-    sweep_code_area();
 
 
     /*
@@ -1923,7 +1922,7 @@ gc(TCR *tcr, signed_natural param)
     check_all_areas(tcr);
     check_static_cons_freelist("in post-gc static-cons check");
   }
-
+  sweep_code_area();
   
   lisp_global(IN_GC) = 0;
   

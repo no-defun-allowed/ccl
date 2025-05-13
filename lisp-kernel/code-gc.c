@@ -62,8 +62,6 @@ LispObj allocate_in_code_area(natural bytes) {
 /* The mark-sweep algorithm is bog-standard, mark-compact uses the
  * same Compressor-esque algorithm used in the dynamic area. */
 
-static natural total_dnodes = 0;
-
 void mark_code_vector(LispObj obj, Boolean precise) {
   natural dnode = area_dnode(obj, code_area->low);
   switch (code_collection_kind) {
@@ -87,27 +85,7 @@ void mark_code_vector(LispObj obj, Boolean precise) {
   }
 }
 
-static void scan_static_area() {
-  /* We end up with most functions being moved to the read-only area
-   * after purification. These functions alsok eep code vectors live. */
-   LispObj *start = (LispObj *)(readonly_area->low), *end = (LispObj *)(readonly_area->active);
-  while (start < end) {
-    LispObj w0;
-    int fulltag;
-    w0 = *start;
-    fulltag = fulltag_of(w0);
-    if (immheader_tag_p(fulltag)) {
-      start = (LispObj *)skip_over_ivector((natural)start, w0);
-    } else {
-      if (in_code_area(w0) && is_node_fulltag(fulltag))
-        mark_code_vector(w0, true);
-      start++;
-    }
-  }
-  if (start > end) {
-    Bug(NULL, "Overran area bounds in scan_static_area");
-  }
-}
+/* The compacting GC */
 
 LispObj code_forwarding_address(LispObj obj) {
   if (code_collection_kind == code_gc_in_place)
@@ -125,6 +103,56 @@ LispObj code_forwarding_address(LispObj obj) {
   return (LispObj)code_area->low + dnode_size * offset + fulltag_of(obj);
 }
 
+
+static void scan_readonly_area() {
+  /* We end up with most functions being moved to the read-only area
+   * after purification. These functions alsok eep code vectors live. */
+  LispObj *start = (LispObj *)(readonly_area->low), *end = (LispObj *)(readonly_area->active);
+  while (start < end) {
+    LispObj w0;
+    int fulltag;
+    w0 = *start;
+    fulltag = fulltag_of(w0);
+    if (immheader_tag_p(fulltag)) {
+      start = (LispObj *)skip_over_ivector((natural)start, w0);
+    } else {
+      if (in_code_area(w0) && is_node_fulltag(fulltag))
+        mark_code_vector(w0, true);
+      start++;
+    }
+  }
+  if (start > end) {
+    Bug(NULL, "Overran area bounds in scan_readonly_area");
+  }
+}
+
+static void relocate_readonly_area() {
+  natural size = readonly_area->high - readonly_area->low;
+  UnProtectMemory(readonly_area->low, size);
+  LispObj *start = (LispObj *)(readonly_area->low), *end = (LispObj *)(readonly_area->active);
+  while (start < end) {
+    LispObj w0;
+    int fulltag;
+    w0 = *start;
+    fulltag = fulltag_of(w0);
+    if (immheader_tag_p(fulltag)) {
+      start = (LispObj *)skip_over_ivector((natural)start, w0);
+    } else {
+      if (in_code_area(w0) && is_node_fulltag(fulltag))
+        *start = code_forwarding_address(w0);
+      start++;
+    }
+  }
+  if (start > end) {
+    Bug(NULL, "Overran area bounds in scan_readonly_area");
+  }
+  ProtectMemory(readonly_area->low, size);
+}
+
+
+static natural previous_dnodes;
+static char *next_active;
+
 static void calculate_code_relocation() {
   /* See calculate_relocation */
   unsigned int
@@ -134,11 +162,10 @@ static void calculate_code_relocation() {
     code_relocations[i] = bits_counted;
     bits_counted += __builtin_popcountl(code_mark_ref_bits[i]);
   }
-  fprintf(stderr, "Counted %d code bytes on %d pagelets\n", bits_counted * dnode_size, npagelets);
-  code_area->active = code_area->low + dnode_size * bits_counted;
+  next_active = code_area->low + dnode_size * bits_counted;
 }
 
-static void compact_code_area() {
+static void move_code_area() {
   natural dnode = 0, end_dnode = area_dnode(code_area->active, code_area->low);
   while (dnode < end_dnode) {
     natural *bitsp, bits, bitidx;
@@ -150,30 +177,33 @@ static void compact_code_area() {
       natural nextbit = count_leading_zeros(bits);
       dnode += nextbit - bitidx;
       bitidx = nextbit;
+
       LispObj src = (LispObj)code_area->low + dnode_size * dnode;
       LispObj dest = code_forwarding_address(src);
       LispObj header = header_of(src);
-      fprintf(stderr, "found %lx (%lx) -> %lx\n", src, header, dest);
       if (header_subtag(header) != subtag_u8_vector)
         Bug(NULL, "%lx (header %lx) does not point to a code vector", src, header);
       natural size = node_size + header_element_count(header);
-      if (dest != size)
-        memmove(ptr_from_lispobj(dest), ptr_from_lispobj(src), size);
+      memmove(ptr_from_lispobj(dest), ptr_from_lispobj(src), size);
       dnode += (size + (dnode_size - 1)) >> dnode_shift;
     }
   }
 }
 
-void sweep_code_area() {
-  natural dnodes = area_dnode(code_area->active, code_area->low);
-  switch (code_collection_kind) {
-  case code_gc_in_place:
-    break;
-  case code_gc_compacting: {
-    scan_static_area();
+void compact_code_area() {
+  previous_dnodes = area_dnode(code_area->active, code_area->low);
+  if (code_collection_kind == code_gc_compacting) {
+    scan_readonly_area();
     calculate_code_relocation();
-    compact_code_area();
+    move_code_area();
+    relocate_readonly_area();
   }
+}
+
+void sweep_code_area() {
+  if (code_collection_kind == code_gc_in_place) {
+    next_active = code_area->active;
   }
-  zero_bits(code_mark_ref_bits, dnodes);
+  zero_bits(code_mark_ref_bits, previous_dnodes);
+  code_area->active = next_active;
 }
