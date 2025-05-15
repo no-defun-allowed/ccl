@@ -197,13 +197,17 @@ static void move_code_area() {
 void compact_code_area() {
   previous_dnodes = area_dnode(code_area->active, code_area->low);
   if (code_collection_kind == code_gc_compacting) {
-    /* Why isn't there another good way to find this area? */
+    /* Why isn't there a good way to find this area? */
     area static_area = {.low = static_space_start, .active = static_space_active};
     scan_additional_area(&static_area);
     scan_additional_area(readonly_area);
+    /* GC expects to have memoised the relevant references from the
+     * managed-static area, but we do not update the refbits. */
     scan_additional_area(managed_static_area);
+
     calculate_code_relocation();
     move_code_area();
+
     natural size = readonly_area->high - readonly_area->low;
     UnProtectMemory(readonly_area->low, size);
     relocate_additional_area(readonly_area);
