@@ -99,14 +99,18 @@ LispObj code_forwarding_address(LispObj obj) {
     shift = nbits_in_word - nbits;
   if (nbits)
     offset += __builtin_popcountl(code_mark_ref_bits[pagelet] >> shift);
-  return (LispObj)code_area->low + dnode_size * offset + fulltag_of(obj);
+  /* Might as well check we're forwarding something live */
+  LispObj addr = (LispObj)code_area->low + dnode_size * offset + fulltag_of(obj);
+  if (!ref_bit(code_mark_ref_bits, dnode))
+    Bug(NULL, LISP " doesn't point to a live code vector", addr);
+  return addr;
 }
 
 
-static void scan_readonly_area() {
+static void scan_additional_area(area *a) {
   /* We end up with most functions being moved to the read-only area
-   * after purification. These functions alsok eep code vectors live. */
-  LispObj *start = (LispObj *)(readonly_area->low), *end = (LispObj *)(readonly_area->active);
+   * after purification. These functions also keep code vectors live. */
+  LispObj *start = (LispObj*)a->low, *end = (LispObj*)a->active;
   while (start < end) {
     LispObj w0;
     int fulltag;
@@ -125,10 +129,8 @@ static void scan_readonly_area() {
   }
 }
 
-static void relocate_readonly_area() {
-  natural size = readonly_area->high - readonly_area->low;
-  UnProtectMemory(readonly_area->low, size);
-  LispObj *start = (LispObj *)(readonly_area->low), *end = (LispObj *)(readonly_area->active);
+static void relocate_additional_area(area *a) {
+  LispObj *start = (LispObj *)a->low, *end = (LispObj *)a->active;
   while (start < end) {
     LispObj w0;
     int fulltag;
@@ -143,9 +145,8 @@ static void relocate_readonly_area() {
     }
   }
   if (start > end) {
-    Bug(NULL, "Overran area bounds in scan_readonly_area");
+    Bug(NULL, "Overran area bounds in relocate_additional_area");
   }
-  ProtectMemory(readonly_area->low, size);
 }
 
 
@@ -196,10 +197,18 @@ static void move_code_area() {
 void compact_code_area() {
   previous_dnodes = area_dnode(code_area->active, code_area->low);
   if (code_collection_kind == code_gc_compacting) {
-    scan_readonly_area();
+    /* Why isn't there another good way to find this area? */
+    area static_area = {.low = static_space_start, .active = static_space_active};
+    scan_additional_area(&static_area);
+    scan_additional_area(readonly_area);
+    scan_additional_area(managed_static_area);
     calculate_code_relocation();
     move_code_area();
-    relocate_readonly_area();
+    natural size = readonly_area->high - readonly_area->low;
+    UnProtectMemory(readonly_area->low, size);
+    relocate_additional_area(readonly_area);
+    relocate_additional_area(managed_static_area);
+    ProtectMemory(readonly_area->low, size);
   }
 }
 

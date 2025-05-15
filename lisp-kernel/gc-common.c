@@ -1579,7 +1579,6 @@ gc(TCR *tcr, signed_natural param)
   } else {
     GCverbose = ((nrs_GC_EVENT_STATUS_BITS.vcell & gc_verbose_bit) != 0);
   }
-  GCverbose = true;
 
   if (GCephemeral_low) {
     if ((oldfree-g1_area->low) < g1_area->threshold) {
