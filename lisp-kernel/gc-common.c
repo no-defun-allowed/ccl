@@ -1820,13 +1820,11 @@ gc(TCR *tcr, signed_natural param)
 
     GCrelocptr = global_reloctab;
     GCfirstunmarked = calculate_relocation();
-
-
+    compact_code_area();
 
     if (!GCephemeral_low) {
       reclaim_static_dnodes();
     }
-
 
     forward_range((LispObj *) ptr_from_lispobj(GCarealow), (LispObj *) ptr_from_lispobj(GCfirstunmarked));
 
@@ -1839,8 +1837,6 @@ gc(TCR *tcr, signed_natural param)
 
   
     forward_gcable_ptrs();
-
-    compact_code_area();
 
     {
       area *next_area;

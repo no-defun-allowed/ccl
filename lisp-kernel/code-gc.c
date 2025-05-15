@@ -95,11 +95,10 @@ LispObj code_forwarding_address(LispObj obj) {
     dnode = area_dnode(obj, code_area->low),
     pagelet = dnode >> bitmap_shift,
     nbits = dnode & bitmap_shift_count_mask,
-    offset = code_relocations[pagelet];
-  if (nbits) {
-    unsigned int shift = nbits_in_word - nbits;
-    offset += __builtin_popcountl((code_mark_ref_bits[pagelet] << shift) >> shift);
-  }
+    offset = code_relocations[pagelet],
+    shift = nbits_in_word - nbits;
+  if (nbits)
+    offset += __builtin_popcountl(code_mark_ref_bits[pagelet] >> shift);
   return (LispObj)code_area->low + dnode_size * offset + fulltag_of(obj);
 }
 
@@ -167,6 +166,7 @@ static void calculate_code_relocation() {
 
 static void move_code_area() {
   natural dnode = 0, end_dnode = area_dnode(code_area->active, code_area->low);
+  LispObj last_dest = 0, last_src = 0;
   while (dnode < end_dnode) {
     natural *bitsp, bits, bitidx;
     set_bitidx_vars(code_mark_ref_bits, dnode, bitsp, bits, bitidx);
@@ -182,10 +182,13 @@ static void move_code_area() {
       LispObj dest = code_forwarding_address(src);
       LispObj header = header_of(src);
       if (header_subtag(header) != subtag_u8_vector)
-        Bug(NULL, "%lx (header %lx) does not point to a code vector", src, header);
+        Bug(NULL, LISP " (header " LISP ") does not point to a code vector", src, header);
+      if (dest <= last_dest)
+        Bug(NULL, LISP " wasn't relocated to after " LISP " at " LISP, src, last_src, last_dest);
       natural size = node_size + header_element_count(header);
       memmove(ptr_from_lispobj(dest), ptr_from_lispobj(src), size);
       dnode += (size + (dnode_size - 1)) >> dnode_shift;
+      last_dest = dest; last_src = src;
     }
   }
 }
