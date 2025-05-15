@@ -267,10 +267,16 @@
 (defx86lapfunction %return-address-offset ((ra arg_y) (p arg_z))
   (check-nargs 2)
   (movq (@ -8 (% p)) (% temp0))
+  (extract-fulltag temp0 imm0)
+  (cmpb ($ x8664::fulltag-function) (% imm0.b))
+  (jne @fail)
   (movq (@ x8664::function.entrypoint (% temp0)) (% imm0))
   (movq (% ra) (% imm1))
   (subq (% imm0) (% imm1))
   (imulq ($ 8) (% imm1) (% arg_z))
+  (single-value-return)
+  @fail
+  (movl ($ (target-nil-value)) (% arg_z.l))
   (single-value-return))
 
 ;;; It's always been the case that the function associated with a
