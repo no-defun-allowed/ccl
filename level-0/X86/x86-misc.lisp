@@ -834,11 +834,10 @@
   (check-nargs 2)
   (save-simple-frame)
   (macptr-ptr src imm0)
-  (leaq (@ (:^ done) (% fn)) (% ra0))
+  (leaq (@ (:^ @done) (% rip)) (% ra0))
   (movq (% imm0) (:rcontext x8664::tcr.safe-ref-address))
   (movq (@ (% imm0)) (% imm0))
-  (jmp done)
-  (:tra done)
+  @done
   (movq ($ 0) (:rcontext x8664::tcr.safe-ref-address))
   (movq (% imm0) (@ x8664::macptr.address (% dest)))
   (restore-simple-frame)
