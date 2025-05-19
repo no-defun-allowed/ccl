@@ -838,10 +838,8 @@
   (push-argregs)
   (subl ($ x8664::fixnumone) (% nargs))
   (lea (:@ (:^ @back) (% fn)) (% ra0))
-  (:talign 4)
   (jmp-subprim .SPthrow)
   @back
-  (recover-fn-from-rip)
   (uuo-error-reg-not-tag (% temp0) ($ x8664::subtag-catch-frame)))
 
 

@@ -839,7 +839,6 @@
   (movq (@ (% imm0)) (% imm0))
   (jmp done)
   (:tra done)
-  (recover-fn-from-rip)
   (movq ($ 0) (:rcontext x8664::tcr.safe-ref-address))
   (movq (% imm0) (@ x8664::macptr.address (% dest)))
   (restore-simple-frame)

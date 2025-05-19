@@ -1381,17 +1381,6 @@
     `(ccl::%stack-block ((,buf ,size :clear t))
       ,@body)))
 
-;;; an (lea (@ disp (% rip)) (% fn)) instruction following a tagged
-;;; return address helps the runtime map from the return address to
-;;; the containing function.  That instuction is 7 bytes long: 3
-;;; bytes of code followed by 4 bytes of displacement.  The constant
-;;; part of that - assuming that FN is R13 - looks like #x4c #x8d #x2d.
-
-(defconstant recover-fn-from-rip-length 7)
-(defconstant recover-fn-from-rip-disp-offset 3)
-(defconstant recover-fn-from-rip-word0 #x8d4c)
-(defconstant recover-fn-from-rip-byte2 #x2d)
-
 ;;; For backtrace: the relative PC of an argument-check trap
 ;;; must be less than or equal to this value.  (Because of
 ;;; the way that we do "anchored" UUOs, it should always be =.)
