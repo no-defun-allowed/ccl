@@ -300,9 +300,12 @@
   (let* ((frame (%current-tsp))
          (single-value-case (not (typep (%lisp-word-ref frame 2) 'fixnum)))
          (frame-count (%lisp-word-ref frame (if single-value-case 3 4)))
-         (throwing (null (%return-address-function (if single-value-case
-                                                     (%lisp-word-ref frame 2)
-                                                     (%lisp-word-ref frame 3))))))
+         ;; XXX: absolutely not. This is all wrong even - an untagged PC might
+         ;; look like a fixnum, so SINGLE-VALUE-CASE is probably wrong too.
+         (throwing (%i< (if single-value-case
+                            (%lisp-word-ref frame 2)
+                            (%lisp-word-ref frame 3))
+                        #x1000000)))
     (declare (fixnum frame))
     (if throwing
       (collect ((info))
