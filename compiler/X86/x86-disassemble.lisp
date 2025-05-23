@@ -2482,7 +2482,7 @@
            (let* ((disp ))
              (if (or (and (setq disp (is-rip-ea op0)) (> disp 0))
                      (and (setq disp (is-ra0-ea op0)) (< disp 0) (is-fn op1)))
-               (let* ((label-ea (+ (x86-di-start instruction) (abs disp))))
+               (let* ((label-ea (+ (x86-di-end instruction) (abs disp))))
                  (when (< label-ea (x86-ds-code-limit ds))
                    (setf (x86::x86-memory-operand-disp op0)
                          (parse-x86-lap-expression
