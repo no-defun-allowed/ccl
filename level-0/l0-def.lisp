@@ -278,16 +278,12 @@
   ;; of catch/unwind-protect frames still to be processed (non-zero
   ;; only in the case where we're actually throwing), the value(s)
   ;; being thrown, and a return address that isn't interesting to
-  ;; us.  It's an historical accident that that information is stored
-  ;; differently in the cases where a single value is being thrown
-  ;; and multiple values are thrown.
+  ;; us.
   ;; A tstack frame is always doubleword aligned, and the first two
   ;; words are a backpointer to the previous tstack frame and a
-  ;; pointer into the main lisp stack.  In the single value case,
-  ;; we then have 3 words: return address, frame count, value;
-  ;; in the multiple-value we have 3 fixed words (value count,
-  ;; return address, frame count) with the values following the
-  ;; frame count (value 0 follows immediately.)
+  ;; pointer into the main lisp stack.  We have 3 fixed words (value
+  ;; count, return address, frame count) with the values following
+  ;; the frame count (value 0 follows immediately.)
   ;; A cleanup form is always called from either .SPnthrowvalues
   ;; of .SPnthrow1value, and those subprims can be called either
   ;; by .SPthrow (in which case the return address in the frame
@@ -298,27 +294,18 @@
   ;; function may violate this assumption and cause misbehavior
   ;; here.
   (let* ((frame (%current-tsp))
-         (single-value-case (not (typep (%lisp-word-ref frame 2) 'fixnum)))
-         (frame-count (%lisp-word-ref frame (if single-value-case 3 4)))
-         ;; XXX: absolutely not. This is all wrong even - an untagged PC might
-         ;; look like a fixnum, so SINGLE-VALUE-CASE is probably wrong too.
-         (address (if single-value-case
-                      (%lisp-word-ref frame 2)
-                      (%lisp-word-ref frame 3)))
-         (throwing (zerop (external-call "in_code_area"
-                                         :unsigned-long (%address-of address)
-                                         :boolean))))
+         (frame-count (%lisp-word-ref frame 4))
+         (address (%fixnum-address-of (%lisp-word-ref frame 3)))
+         (throwing (zerop (external-call "in_code_area" :unsigned-long (print address) :boolean))))
     (declare (fixnum frame))
     (if throwing
       (collect ((info))
         (info (nth-catch-frame-tag frame-count))
-        (if single-value-case
-          (info (%lisp-word-ref frame 4))
-          (let* ((valptr (+ frame 5)))
-            (declare (fixnum valptr))
-            (dotimes (i (%lisp-word-ref frame 2))
-              (declare (fixnum i))
-              (info (%lisp-word-ref valptr i)))))
+        (let* ((valptr (+ frame 5)))
+          (declare (fixnum valptr))
+          (dotimes (i (%lisp-word-ref frame 2))
+            (declare (fixnum i))
+            (info (%lisp-word-ref valptr i))))
         (info)))))
 
 ;;; end of l0-def.lisp

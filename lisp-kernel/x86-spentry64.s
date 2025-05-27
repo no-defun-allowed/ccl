@@ -1504,12 +1504,15 @@ local_label(_nthrow1v_do_unwind):
 	/* Discard the catch frame, so we can build a temp frame   */
 	__(movq -(tsp_frame.fixed_overhead+fulltag_misc)(%temp0),%imm1)
         __(movq %imm1,rcontext(tcr.save_tsp))
-        __(movq %imm1,rcontext(tcr.next_tsp))        
-	__(TSP_Alloc_Fixed((3*node_size),%imm1))
+	__(movq %imm1,rcontext(tcr.next_tsp))
+	/* tsp overhead, nargs (always 1), throw count, ra0 */
+	__(TSP_Alloc_Fixed((4*node_size),%imm1))
 	__(addq $tsp_frame.fixed_overhead,%imm1)
-	__(movq %ra0,(%imm1))
-	__(movq %mm1,node_size*1(%imm1))
-	__(movq %arg_z,node_size*2(%imm1))
+	__(movl $(1 << fixnum_shift),%temp0_l)
+	__(movq %temp0,(%imm1))
+	__(movq %ra0,node_size*1(%imm1))
+	__(movq %mm1,node_size*2(%imm1))
+	__(movq %arg_z,node_size*3(%imm1))
 /* Ready to call cleanup code. set up tra, jmp to %xfn   */
 	__(leaq local_label(_nthrow1v_called_cleanup)(%rip),%ra0)
 	__(movb $0,rcontext(tcr.unwinding))
@@ -1519,9 +1522,9 @@ __(tra(local_label(_nthrow1v_called_cleanup)))
 
 	__(movb $1,rcontext(tcr.unwinding))
 	__(movq rcontext(tcr.save_tsp),%imm1)
-	__(movq tsp_frame.data_offset+(0*node_size)(%imm1),%ra0)
-	__(movq tsp_frame.data_offset+(1*node_size)(%imm1),%mm1)
-	__(movq tsp_frame.data_offset+(2*node_size)(%imm1),%arg_z)
+	__(movq tsp_frame.data_offset+(1*node_size)(%imm1),%ra0)
+	__(movq tsp_frame.data_offset+(2*node_size)(%imm1),%mm1)
+	__(movq tsp_frame.data_offset+(3*node_size)(%imm1),%arg_z)
 
 	__(movq (%imm1),%imm1)
         __(movq %imm1,rcontext(tcr.save_tsp))
