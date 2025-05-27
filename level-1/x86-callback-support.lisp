@@ -73,4 +73,46 @@
           (%get-unsigned-byte p 10) (ldb (byte 8 16) addr)
           (%get-unsigned-byte p 11) (ldb (byte 8 24) addr))
     p))
-  
+
+;;; This function is magic, and it can only be called from
+;;; an unwind-protect cleanup form (making it even more magic.)
+;;; If we can tell that we reached the unwind-protect via THROW,
+;;; return a list of the target catch tag and all values being
+;;; thrown.
+(defun %throwing-through-cleanup-p ()
+  ;; when we enter and unwind-protect cleanup on x8664, the
+  ;; top frame on the tstack contains state information that's
+  ;; used both by THROW and by normal exit from the protected
+  ;; form.  That state information contains a count of the number
+  ;; of catch/unwind-protect frames still to be processed (non-zero
+  ;; only in the case where we're actually throwing), the value(s)
+  ;; being thrown, and a return address that isn't interesting to
+  ;; us.
+  ;; A tstack frame is always doubleword aligned, and the first two
+  ;; words are a backpointer to the previous tstack frame and a
+  ;; pointer into the main lisp stack.  We have 3 fixed words (value
+  ;; count, return address, frame count) with the values following
+  ;; the frame count (value 0 follows immediately.)
+  ;; A cleanup form is always called from either .SPnthrowvalues
+  ;; of .SPnthrow1value, and those subprims can be called either
+  ;; by .SPthrow (in which case the return address in the frame
+  ;; will not be in the code area) or by Lisp code
+  ;; (in which case it will.)
+  ;; We (have to) just assume that the frame on top of the temp
+  ;; stack is context info for the nthrow stuff.  Tracing this
+  ;; function may violate this assumption and cause misbehavior
+  ;; here.
+  (let* ((frame (%current-tsp))
+         (frame-count (%lisp-word-ref frame 4))
+         (address (%fixnum-address-of (%lisp-word-ref frame 3)))
+         (throwing (zerop (external-call "in_code_area" :unsigned-long address :boolean))))
+    (declare (fixnum frame))
+    (if throwing
+      (collect ((info))
+        (info (nth-catch-frame-tag frame-count))
+        (let* ((valptr (+ frame 5)))
+          (declare (fixnum valptr))
+          (dotimes (i (%lisp-word-ref frame 2))
+            (declare (fixnum i))
+            (info (%lisp-word-ref valptr i))))
+        (info)))))
