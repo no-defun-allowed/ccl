@@ -244,10 +244,7 @@ LispObj allocate_in_code_area(natural);
 LispObj code_forwarding_address(LispObj);
 
 #ifdef X8664
-static Boolean in_code_area(LispObj where) {
-  char *p = (char*)where;
-  return code_area->low <= p && p < code_area->active;
-}
+extern Boolean in_code_area(LispObj);
 #else
 #define in_code_area(where) false
 #endif

@@ -223,3 +223,8 @@ void sweep_code_area() {
   zero_bits(code_mark_ref_bits, previous_dnodes);
   code_area->active = next_active;
 }
+
+Boolean in_code_area(LispObj where) {
+  char *p = (char*)where;
+  return code_area->low <= p && p < code_area->active;
+}

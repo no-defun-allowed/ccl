@@ -302,10 +302,12 @@
          (frame-count (%lisp-word-ref frame (if single-value-case 3 4)))
          ;; XXX: absolutely not. This is all wrong even - an untagged PC might
          ;; look like a fixnum, so SINGLE-VALUE-CASE is probably wrong too.
-         (throwing (%i< (if single-value-case
-                            (%lisp-word-ref frame 2)
-                            (%lisp-word-ref frame 3))
-                        #x1000000)))
+         (address (if single-value-case
+                      (%lisp-word-ref frame 2)
+                      (%lisp-word-ref frame 3)))
+         (throwing (zerop (external-call "in_code_area"
+                                         :unsigned-long (%address-of address)
+                                         :boolean))))
     (declare (fixnum frame))
     (if throwing
       (collect ((info))
