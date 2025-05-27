@@ -287,7 +287,7 @@
   ;; A cleanup form is always called from either .SPnthrowvalues
   ;; of .SPnthrow1value, and those subprims can be called either
   ;; by .SPthrow (in which case the return address in the frame
-  ;; will have no function associated with it) or by Lisp code
+  ;; will not be in the code area) or by Lisp code
   ;; (in which case it will.)
   ;; We (have to) just assume that the frame on top of the temp
   ;; stack is context info for the nthrow stuff.  Tracing this
@@ -296,7 +296,7 @@
   (let* ((frame (%current-tsp))
          (frame-count (%lisp-word-ref frame 4))
          (address (%fixnum-address-of (%lisp-word-ref frame 3)))
-         (throwing (zerop (external-call "in_code_area" :unsigned-long (print address) :boolean))))
+         (throwing (zerop (external-call "in_code_area" :unsigned-long address :boolean))))
     (declare (fixnum frame))
     (if throwing
       (collect ((info))
