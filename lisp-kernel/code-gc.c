@@ -17,13 +17,31 @@
  * an image (when there are no ambiguous roots).
  */
 
-/* But for now, we just have one bump-allocated space which we
- * only ever mark-compacted just before saving an image. */
-
 #include "lisp.h"
 #include "gc.h"
 #include "area.h"
 #include "bits.h"
+
+#define LOG2_BLOCK_SIZE 15
+#define BLOCK_SIZE (1 << LOG2_BLOCK_SIZE)
+/* Objects which were in the image are immortal and aren't block-aligned.
+ * We don't allocate into immortal block. */
+#define IMMORTAL_CLASS -1
+/* Objects larger than a block are large and are handled specially. */
+#define LARGE_CLASS -2
+/* Smaller size classes are computed by ceil(lb(size)). */
+#define LARGEST_SMALL_CLASS LOG2_BLOCK_SIZE
+#define FREE_CLASS 0
+struct block {
+  unsigned char size_class;
+  unsigned int large_size;      /* pages of a large object */
+  void *free_list;
+};
+
+static struct block *block_table;
+static unsigned int used_blocks;
+/* The last is for large objects. */
+static unsigned int block_allocator_state[LOG2_BLOCK_SIZE + 1];
 
 static bitvector code_mark_ref_bits;
 /* We are only going to have 2GB of code, so we might as well use
@@ -32,6 +50,7 @@ static unsigned int *code_relocations;
 code_gc_kind code_collection_kind = code_gc_in_place;
 
 void init_code_area(area *a) {
+  /* First the mark bits. */
   /* see map_initial_markbits */
   natural
     prefix_dnodes = area_dnode(a->low, pure_space_limit),
@@ -42,11 +61,46 @@ void init_code_area(area *a) {
 
   code_mark_ref_bits = (bitvector)(((BytePtr)global_mark_ref_bits)+prefix_size);
   CommitMemory(code_mark_ref_bits,n);
-  
+
+  /* Then the relocation table for compacting GC. */
   natural relocation_bytes = sizeof(unsigned int) * ndnodes >> bitmap_shift;
   code_relocations = ReserveMemory(relocation_bytes);
   if (!code_relocations) Bug(NULL, "Couldn't allocate code area relocation table");
   CommitMemory(code_relocations, relocation_bytes);
+
+  /* Then the block table for non-moving allocation. */
+  int
+    blocks = ((a->high - a->low) + (BLOCK_SIZE - 1)) / BLOCK_SIZE,
+    immortal_blocks = ((a->active - a->low) + (BLOCK_SIZE - 1)) / BLOCK_SIZE;
+  block_table = calloc(blocks, sizeof(struct block));
+  if (!block_table) Bug(NULL, "Couldn't allocate code block table for %d blocks", blocks);
+  for (int i = 0; i < immortal_blocks; i++)
+    block_table[i].size_class = IMMORTAL_CLASS;
+  used_blocks = immortal_blocks;
+}
+
+/* Allocation */
+static char *block_address(unsigned int index) {
+  return code_area->low + index * BLOCK_SIZE;
+}
+static unsigned int lispobj_block(LispObj obj) {
+  if (!in_code_area(obj))
+    Bug(NULL, "lispobj_block argument should be in the code area");
+  return (obj - (LispObj)code_area->low) / BLOCK_SIZE;
+}
+
+static void init_small_page(unsigned int index, unsigned char size_class) {
+  if (size_class == FREE_CLASS || size_class > LARGEST_SMALL_CLASS)
+    Bug(NULL, "init_small_page requires a small class");
+  int stride = 1 << size_class;
+  block_table[index].free_list = block_address(index);
+  char *limit = block_address(index + 1);
+  for (char *addr = block_address(index);
+       addr < limit;
+       addr += stride) {
+    *(char**)addr = (addr + stride >= limit) ? NULL : addr + stride;
+  }
+  if (index > used_blocks) used_blocks = index;
 }
 
 LispObj allocate_in_code_area(natural bytes) {
@@ -59,8 +113,16 @@ LispObj allocate_in_code_area(natural bytes) {
   return (LispObj)last | fulltag_misc;
 }
 
-/* The mark-sweep algorithm is bog-standard, mark-compact uses the
- * same Compressor-esque algorithm used in the dynamic area. */
+static Boolean is_object_live(LispObj obj) {
+  /* Objects on the free list will have a pointer instead of a u8 header,
+   * and this pointer is at least word-aligned, so it will not look like a u8
+   * header. */
+  return header_subtag(header_of(obj)) == subtag_u8_vector;
+}
+
+/* The mark-sweep algorithm is bog-standard using a mark bitmap; though
+ * code vectors don't have any references and thus we never trace from
+ * code vectors. */
 
 void mark_code_vector(LispObj obj, Boolean precise) {
   natural dnode = area_dnode(obj, code_area->low);
@@ -85,7 +147,8 @@ void mark_code_vector(LispObj obj, Boolean precise) {
   }
 }
 
-/* The compacting GC */
+/* The compacting GC, which is the same Compressor-esque algorithm used
+ * for the dynamic area. */
 
 LispObj code_forwarding_address(LispObj obj) {
   if (code_collection_kind == code_gc_in_place)
