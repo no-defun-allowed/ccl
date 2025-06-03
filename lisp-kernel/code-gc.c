@@ -32,16 +32,25 @@
 /* Smaller size classes are computed by ceil(lb(size)). */
 #define LARGEST_SMALL_CLASS LOG2_BLOCK_SIZE
 #define FREE_CLASS 0
+
+struct free_list;
+struct free_list {
+  struct free_list *next;
+};
 struct block {
   unsigned char size_class;
   unsigned int large_size;      /* pages of a large object */
-  void *free_list;
+  struct free_list *free_list;
 };
+typedef unsigned int block_index;
 
 static struct block *block_table;
 static unsigned int used_blocks;
-/* The last is for large objects. */
-static unsigned int block_allocator_state[LOG2_BLOCK_SIZE + 1];
+static unsigned int total_blocks;
+#define LARGE_ALLOCATOR_STATE (LOG2_BLOCK_SIZE + 0)
+#define FREE_ALLOCATOR_STATE (LOG2_BLOCK_SIZE + 1)
+#define ALLOCATION_STATES (LOG2_BLOCK_SIZE + 2)
+static unsigned int block_allocator_state[ALLOCATION_STATES];
 
 static bitvector code_mark_ref_bits;
 /* We are only going to have 2GB of code, so we might as well use
@@ -69,18 +78,17 @@ void init_code_area(area *a) {
   CommitMemory(code_relocations, relocation_bytes);
 
   /* Then the block table for non-moving allocation. */
-  int
-    blocks = ((a->high - a->low) + (BLOCK_SIZE - 1)) / BLOCK_SIZE,
-    immortal_blocks = ((a->active - a->low) + (BLOCK_SIZE - 1)) / BLOCK_SIZE;
-  block_table = calloc(blocks, sizeof(struct block));
-  if (!block_table) Bug(NULL, "Couldn't allocate code block table for %d blocks", blocks);
+  total_blocks = ((a->high - a->low) + (BLOCK_SIZE - 1)) / BLOCK_SIZE;
+  int immortal_blocks = ((a->active - a->low) + (BLOCK_SIZE - 1)) / BLOCK_SIZE;
+  block_table = calloc(total_blocks, sizeof(struct block));
+  if (!block_table) Bug(NULL, "Couldn't allocate code block table for %d blocks", total_blocks);
   for (int i = 0; i < immortal_blocks; i++)
     block_table[i].size_class = IMMORTAL_CLASS;
   used_blocks = immortal_blocks;
 }
 
 /* Allocation */
-static char *block_address(unsigned int index) {
+static char *block_address(block_index index) {
   return code_area->low + index * BLOCK_SIZE;
 }
 static unsigned int lispobj_block(LispObj obj) {
@@ -89,18 +97,48 @@ static unsigned int lispobj_block(LispObj obj) {
   return (obj - (LispObj)code_area->low) / BLOCK_SIZE;
 }
 
-static void init_small_page(unsigned int index, unsigned char size_class) {
+static void init_small_block(block_index index, unsigned char size_class) {
   if (size_class == FREE_CLASS || size_class > LARGEST_SMALL_CLASS)
-    Bug(NULL, "init_small_page requires a small class");
+    Bug(NULL, "init_small_block requires a small class");
+  if (block_table[index].size_class != FREE_CLASS)
+    Bug(NULL, "init_small_block requires a free page");
   int stride = 1 << size_class;
-  block_table[index].free_list = block_address(index);
+  block_table[index].free_list = (struct free_list*)block_address(index);
+  block_table[index].size_class = size_class;
   char *limit = block_address(index + 1);
   for (char *addr = block_address(index);
        addr < limit;
        addr += stride) {
-    *(char**)addr = (addr + stride >= limit) ? NULL : addr + stride;
+    struct free_list *node = (struct free_list*)addr;
+    node->next = (struct free_list*)((addr + stride >= limit) ? NULL : addr + stride);
   }
-  if (index > used_blocks) used_blocks = index;
+  if (index >= used_blocks) used_blocks = index + 1;
+}
+
+static LispObj *allocate_from_small_block(block_index index) {
+  if (!block_table[index].free_list)
+    Bug(NULL, "allocate_from_small_block on page with no free objects");
+  LispObj *o = (LispObj*)block_table[index].free_list;
+  block_table[index].free_list = block_table[index].free_list->next;
+  return o;
+}
+
+LispObj *allocate_small_object(unsigned char size_class) {
+  for (block_index index = block_allocator_state[size_class]; index < used_blocks; index++) {
+    if (block_table[index].size_class == size_class && block_table[index].free_list) {
+      block_allocator_state[size_class] = index;
+      return allocate_from_small_block(index);
+    }
+  }
+  for (block_index index = block_allocator_state[FREE_ALLOCATOR_STATE]; index < total_blocks; index++) {
+    if (block_table[index].size_class == FREE_CLASS) {
+      init_small_block(index, size_class);
+      block_allocator_state[size_class] = index;
+      block_allocator_state[FREE_ALLOCATOR_STATE] = index + 1;
+      return allocate_from_small_block(index);
+    }
+  }
+  Bug(NULL, "Out of code area");
 }
 
 LispObj allocate_in_code_area(natural bytes) {
@@ -285,6 +323,8 @@ void sweep_code_area() {
   }
   zero_bits(code_mark_ref_bits, previous_dnodes);
   code_area->active = next_active;
+  for (unsigned int i; i < ALLOCATION_STATES; i++)
+    block_allocator_state[i] = 0;
 }
 
 Boolean in_code_area(LispObj where) {
