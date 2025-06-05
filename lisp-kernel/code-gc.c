@@ -22,6 +22,8 @@
 #include "area.h"
 #include "bits.h"
 
+/* We steal a byte at the end of objects to store a generation. */
+#define TRAILER_BYTES 1
 #define LOG2_BLOCK_SIZE 15
 #define BLOCK_SIZE (1 << LOG2_BLOCK_SIZE)
 /* Objects which were in the image are immortal and aren't block-aligned.
@@ -97,6 +99,13 @@ static unsigned int lispobj_block(LispObj obj) {
   return (obj - (LispObj)code_area->low) / BLOCK_SIZE;
 }
 
+static void update_used_blocks(block_index index) {
+  if (index >= used_blocks) {
+    used_blocks = index + 1;
+    code_area->active = block_address(index + 1);
+  }
+}
+
 static void init_small_block(block_index index, unsigned char size_class) {
   if (size_class == FREE_CLASS || size_class > LARGEST_SMALL_CLASS)
     Bug(NULL, "init_small_block requires a small class");
@@ -112,8 +121,10 @@ static void init_small_block(block_index index, unsigned char size_class) {
     struct free_list *node = (struct free_list*)addr;
     node->next = (struct free_list*)((addr + stride >= limit) ? NULL : addr + stride);
   }
-  if (index >= used_blocks) used_blocks = index + 1;
+  update_used_blocks(index);
 }
+
+static void out_of_code_area(const char *name) { Bug(NULL, "Out of code area in %s", name); }
 
 static LispObj *allocate_from_small_block(block_index index) {
   if (!block_table[index].free_list)
@@ -124,6 +135,8 @@ static LispObj *allocate_from_small_block(block_index index) {
 }
 
 LispObj *allocate_small_object(unsigned char size_class) {
+  if (1 << size_class < dnode_size)
+    Bug(NULL, "allocate_small_object size class %d should be more than a dnode's worth", size_class);
   for (block_index index = block_allocator_state[size_class]; index < used_blocks; index++) {
     if (block_table[index].size_class == size_class && block_table[index].free_list) {
       block_allocator_state[size_class] = index;
@@ -138,17 +151,47 @@ LispObj *allocate_small_object(unsigned char size_class) {
       return allocate_from_small_block(index);
     }
   }
-  Bug(NULL, "Out of code area");
+  out_of_code_area("allocate_small_object");
+}
+
+static LispObj *allocate_large_object(unsigned int bytes) {
+  unsigned int nblocks = align_to_power_of_2(bytes, LOG2_BLOCK_SIZE) >> LOG2_BLOCK_SIZE;
+  block_index index = block_allocator_state[LARGE_ALLOCATOR_STATE];
+  block_index start, end;
+  while (true) {
+    while (block_table[index].size_class != FREE_CLASS) {
+      index++;
+      if (index == total_blocks) out_of_code_area("allocate_large_object free scan");
+    }
+    start = index;
+    while (block_table[index].size_class == FREE_CLASS && index - start < nblocks) {
+      index++;
+      if (index == total_blocks) out_of_code_area("allocate_large_object used scan");
+    }
+    end = index - 1;
+    break;
+  }
+  block_allocator_state[LARGE_ALLOCATOR_STATE] = end + 1;
+  for (unsigned int block = start; block <= end; block++) {
+    block_table[block].size_class = LARGE_ALLOCATOR_STATE;
+    block_table[block].large_size = 0;
+  }
+  block_table[start].large_size = bytes;
+  update_used_blocks(end);
+  return (LispObj*)block_address(start);
 }
 
 LispObj allocate_in_code_area(natural bytes) {
-  natural bytes_needed = align_to_power_of_2(node_size + bytes, dnode_shift);
-  char *last = code_area->active;
-  if (code_area->active + bytes_needed > code_area->high)
-    Bug(NULL, "Out of code area");
-  code_area->active += bytes_needed;
-  *(LispObj*)last = make_header(subtag_u8_vector, bytes);
-  return (LispObj)last | fulltag_misc;
+  natural bytes_needed = align_to_power_of_2(node_size + bytes + TRAILER_BYTES, dnode_shift);
+  LispObj *p;
+  if (bytes_needed >= BLOCK_SIZE / 2) {
+    p = allocate_large_object(bytes_needed);
+  } else {
+    unsigned char size_class = WORD_SIZE - count_leading_zeros(bytes_needed - 1);
+    p = allocate_small_object(size_class);
+  }
+  *p = make_header(subtag_u8_vector, bytes);
+  return (LispObj)p | fulltag_misc;
 }
 
 static Boolean is_object_live(LispObj obj) {
