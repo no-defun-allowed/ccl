@@ -28,9 +28,9 @@
 #define BLOCK_SIZE (1 << LOG2_BLOCK_SIZE)
 /* Objects which were in the image are immortal and aren't block-aligned.
  * We don't allocate into immortal block. */
-#define IMMORTAL_CLASS -1
+#define IMMORTAL_CLASS (unsigned char)(-1)
 /* Objects larger than a block are large and are handled specially. */
-#define LARGE_CLASS -2
+#define LARGE_CLASS (unsigned char)(-2)
 /* Smaller size classes are computed by ceil(lb(size)). */
 #define LARGEST_SMALL_CLASS LOG2_BLOCK_SIZE
 #define FREE_CLASS 0
@@ -93,7 +93,7 @@ void init_code_area(area *a) {
 static char *block_address(block_index index) {
   return code_area->low + index * BLOCK_SIZE;
 }
-static unsigned int lispobj_block(LispObj obj) {
+static block_index lispobj_block(LispObj obj) {
   if (!in_code_area(obj))
     Bug(NULL, "lispobj_block argument should be in the code area");
   return (obj - (LispObj)code_area->low) / BLOCK_SIZE;
@@ -181,6 +181,11 @@ static LispObj *allocate_large_object(unsigned int bytes) {
   return (LispObj*)block_address(start);
 }
 
+static char *trailer_data(LispObj *addr) {
+  natural bytes = header_element_count(header_of(addr));
+  return (char*)addr + bytes + node_size;
+}
+
 LispObj allocate_in_code_area(natural bytes) {
   natural bytes_needed = align_to_power_of_2(node_size + bytes + TRAILER_BYTES, dnode_shift);
   LispObj *p;
@@ -191,6 +196,7 @@ LispObj allocate_in_code_area(natural bytes) {
     p = allocate_small_object(size_class);
   }
   *p = make_header(subtag_u8_vector, bytes);
+  *trailer_data(p) = 0;
   return (LispObj)p | fulltag_misc;
 }
 
@@ -201,6 +207,25 @@ static Boolean is_object_live(LispObj obj) {
   return header_subtag(header_of(obj)) == subtag_u8_vector;
 }
 
+static LispObj *refine_pointer(LispObj imprecise) {
+  block_index b = lispobj_block(imprecise);
+  switch (block_table[b].size_class) {
+  case FREE_CLASS:
+  case IMMORTAL_CLASS:
+    return NULL;
+  case LARGE_CLASS:
+    /* Look for the page with the start of the object, which has a large_size != 0 */
+    while (!block_table[b].large_size) b--;
+    return (LispObj*)block_address(b);
+  default: {
+    /* The crux of the biscuit: */
+    int stride = 1 << block_table[b].size_class;
+    LispObj precise = imprecise & ~(stride - 1);
+    return is_object_live(precise) ? (LispObj*)precise : NULL;
+  }
+  }
+}
+
 /* The mark-sweep algorithm is bog-standard using a mark bitmap; though
  * code vectors don't have any references and thus we never trace from
  * code vectors. */
@@ -209,6 +234,11 @@ void mark_code_vector(LispObj obj, Boolean precise) {
   natural dnode = area_dnode(obj, code_area->low);
   switch (code_collection_kind) {
   case code_gc_in_place:
+    if (precise) {
+      LispObj *refined = refine_pointer(obj);
+      if (!refined) return;
+      dnode = area_dnode(refined, code_area->low);
+    }
     set_bit(code_mark_ref_bits, dnode);
     break;
   case code_gc_compacting: {
