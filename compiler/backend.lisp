@@ -380,14 +380,25 @@
                      :mode (get-regspec-mode proto)))
 
 
-                       
 (defvar *backend-immediates*)
+(defvar *backend-immediates-cache*)
 
 (defun backend-new-immediate (imm)
-  (vector-push-extend imm *backend-immediates*))
+  (let ((index (vector-push-extend imm *backend-immediates*)))
+    (cond
+      (*backend-immediates-cache*
+       (setf (gethash imm *backend-immediates-cache*) index))
+      ((> (length *backend-immediates*) 400)
+       ;; The vector is too large, spill into a hash table.
+       (setf *backend-immediates-cache* (make-hash-table))
+       (dotimes (i (length *backend-immediates*))
+         (setf (gethash (aref *backend-immediates* i) *backend-immediates-cache*) i))))
+    index))
 
 (defun backend-immediate-index (imm)
-  (or (position imm *backend-immediates*)
+  (or (if *backend-immediates-cache*
+          (gethash imm *backend-immediates-cache*)
+          (position imm *backend-immediates*))
       (backend-new-immediate imm)))
 
 (defvar *backend-vinsns*)

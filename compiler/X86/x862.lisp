@@ -630,6 +630,7 @@
            (*x862-register-ea-annotations* (x862-make-stack 16))
            (*x862-register-restore-ea* nil)
            (*backend-immediates* (x862-make-stack 64 target::subtag-simple-vector))
+           (*backend-immediates-cache* nil)
            (*x862-double-float-constant-alist* nil)
            (*x862-single-float-constant-alist* nil)
            (*x862-vstack* 0)
