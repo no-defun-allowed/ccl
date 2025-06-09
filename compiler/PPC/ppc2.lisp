@@ -443,6 +443,7 @@
            (*ppc2-undo-stack* (ppc2-make-stack 64  target::subtag-simple-vector))
            (*ppc2-undo-because* (ppc2-make-stack 64))
            (*backend-immediates* (ppc2-make-stack 64  target::subtag-simple-vector))
+           (*backend-immediates-cache* nil)
            (*ppc2-entry-label* nil)
            (*ppc2-tail-label* nil)
            (*ppc2-tail-vsp* nil)

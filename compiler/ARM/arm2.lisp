@@ -572,6 +572,7 @@
            (*arm2-undo-stack* (arm2-make-stack 64  target::subtag-simple-vector))
            (*arm2-undo-because* (arm2-make-stack 64))
            (*backend-immediates* (arm2-make-stack 64  target::subtag-simple-vector))
+           (*backend-immediates-cache* nil)
            (*arm2-entry-label* nil)
            (*arm2-fixed-args-label* nil)
            (*arm2-fixed-args-tail-label*)
