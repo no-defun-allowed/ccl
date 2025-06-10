@@ -239,7 +239,7 @@ extern code_gc_kind code_collection_kind;
 void init_code_area(area *);
 void mark_code_vector(LispObj obj, Boolean precise);
 void compact_code_area();
-void sweep_code_area();
+void sweep_code_area(unsigned char generation, Boolean raise);
 LispObj allocate_in_code_area(natural);
 LispObj code_forwarding_address(LispObj);
 

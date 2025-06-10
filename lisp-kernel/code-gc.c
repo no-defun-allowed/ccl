@@ -22,18 +22,21 @@
 #include "area.h"
 #include "bits.h"
 
-/* We steal a byte at the end of objects to store a generation. */
-#define TRAILER_BYTES 1
+/* We allocate a size per block of the code area. */
 #define LOG2_BLOCK_SIZE 15
 #define BLOCK_SIZE (1 << LOG2_BLOCK_SIZE)
+/* We steal a byte at the end of objects to store a generation. */
+#define TRAILER_BYTES 1
 /* Objects which were in the image are immortal and aren't block-aligned.
- * We don't allocate into immortal block. */
+ * We don't allocate into or reclaim from immortal blocks. */
 #define IMMORTAL_CLASS (unsigned char)(-1)
 /* Objects larger than a block are large and are handled specially. */
 #define LARGE_CLASS (unsigned char)(-2)
 /* Smaller size classes are computed by ceil(lb(size)). */
 #define LARGEST_SMALL_CLASS LOG2_BLOCK_SIZE
 #define FREE_CLASS 0
+/* Each block stores a bit-set of which generations appear in the block. */
+#define GENERATION_FILTER(gen) (1 << (gen))
 
 struct free_list;
 struct free_list {
@@ -41,6 +44,7 @@ struct free_list {
 };
 struct block {
   unsigned char size_class;
+  unsigned char generation_filter;
   unsigned int large_size;      /* pages of a large object */
   struct free_list *free_list;
 };
@@ -74,10 +78,8 @@ void init_code_area(area *a) {
   CommitMemory(code_mark_ref_bits,n);
 
   /* Then the relocation table for compacting GC. */
-  natural relocation_bytes = sizeof(unsigned int) * ndnodes >> bitmap_shift;
-  code_relocations = ReserveMemory(relocation_bytes);
+  code_relocations = calloc(ndnodes >> bitmap_shift, sizeof(unsigned int));
   if (!code_relocations) Bug(NULL, "Couldn't allocate code area relocation table");
-  CommitMemory(code_relocations, relocation_bytes);
 
   /* Then the block table for non-moving allocation. */
   total_blocks = ((a->high - a->low) + (BLOCK_SIZE - 1)) / BLOCK_SIZE;
@@ -131,6 +133,7 @@ static LispObj *allocate_from_small_block(block_index index) {
     Bug(NULL, "allocate_from_small_block on page with no free objects");
   LispObj *o = (LispObj*)block_table[index].free_list;
   block_table[index].free_list = block_table[index].free_list->next;
+  block_table[index].generation_filter |= GENERATION_FILTER(0);
   return o;
 }
 
@@ -171,6 +174,7 @@ static LispObj *allocate_large_object(unsigned int bytes) {
     end = index - 1;
     break;
   }
+  /* The first block has the object size, all others have size = 0. */
   block_allocator_state[LARGE_ALLOCATOR_STATE] = end + 1;
   for (unsigned int block = start; block <= end; block++) {
     block_table[block].size_class = LARGE_ALLOCATOR_STATE;
@@ -185,6 +189,7 @@ static char *trailer_data(LispObj *addr) {
   natural bytes = header_element_count(header_of(addr));
   return (char*)addr + bytes + node_size;
 }
+#define GENERATION_OF(addr) (*trailer_data(addr))
 
 LispObj allocate_in_code_area(natural bytes) {
   natural bytes_needed = align_to_power_of_2(node_size + bytes + TRAILER_BYTES, dnode_shift);
@@ -200,7 +205,7 @@ LispObj allocate_in_code_area(natural bytes) {
   return (LispObj)p | fulltag_misc;
 }
 
-static Boolean is_object_live(LispObj obj) {
+static Boolean is_object_live(LispObj *obj) {
   /* Objects on the free list will have a pointer instead of a u8 header,
    * and this pointer is at least word-aligned, so it will not look like a u8
    * header. */
@@ -220,8 +225,8 @@ static LispObj *refine_pointer(LispObj imprecise) {
   default: {
     /* The crux of the biscuit: */
     int stride = 1 << block_table[b].size_class;
-    LispObj precise = imprecise & ~(stride - 1);
-    return is_object_live(precise) ? (LispObj*)precise : NULL;
+    LispObj *precise = (LispObj*)(imprecise & ~(stride - 1));
+    return is_object_live(precise) ? precise : NULL;
   }
   }
 }
@@ -234,7 +239,7 @@ void mark_code_vector(LispObj obj, Boolean precise) {
   natural dnode = area_dnode(obj, code_area->low);
   switch (code_collection_kind) {
   case code_gc_in_place:
-    if (precise) {
+    if (!precise) {
       LispObj *refined = refine_pointer(obj);
       if (!refined) return;
       dnode = area_dnode(refined, code_area->low);
@@ -378,7 +383,6 @@ void compact_code_area() {
     /* GC expects to have memoised the relevant references from the
      * managed-static area, but we do not update the refbits. */
     scan_additional_area(managed_static_area);
-
     calculate_code_relocation();
     move_code_area();
 
@@ -390,12 +394,88 @@ void compact_code_area() {
   }
 }
 
-void sweep_code_area() {
+static Boolean is_object_marked(LispObj *o) {
+  natural dnode = area_dnode(o, code_area->low);
+  return ref_bit(code_mark_ref_bits, dnode);
+}
+
+static void free_block(block_index i) {
+  block_table[i].size_class = FREE_CLASS;
+  block_table[i].generation_filter = 0;
+}
+
+static void sweep_small_block(block_index index, unsigned char generation, Boolean raise) {
+  unsigned char size_class = block_table[index].size_class;
+  if (size_class > LARGEST_SMALL_CLASS)
+    Bug(NULL, "sweep_small_block only works on small blocks");
+  
+  int stride = 1 << size_class;
+  struct free_list *free_list = block_table[index].free_list;
+  Boolean any_survived = false;
+  
+  for (char *addr = block_address(index);
+       addr < block_address(index + 1);
+       addr += stride) {
+    LispObj *o = (LispObj*)addr;
+    if (is_object_live(o) && GENERATION_OF(o) == generation) {
+      if (is_object_marked(o)) {
+        any_survived = true;
+        if (raise) GENERATION_OF(o)++;
+      } else {
+        /* Push onto the free list */
+        struct free_list *new_node = (struct free_list*)addr;
+        new_node->next = free_list;
+        free_list = new_node;
+      }
+    }
+  }
+  
+  block_table[index].free_list = free_list;
+  if (raise || !any_survived)
+    block_table[index].generation_filter &= ~GENERATION_FILTER(generation);
+  if (raise && any_survived)
+    block_table[index].generation_filter |= GENERATION_FILTER(generation + 1);
+  /* If there are no surviving generations on the block, free the block. */
+  if (!block_table[index].generation_filter)
+    block_table[index].size_class = FREE_CLASS;
+}
+
+void sweep_code_area(unsigned char generation, Boolean raise) {
   if (code_collection_kind == code_gc_in_place) {
-    next_active = code_area->active;
+    for (block_index i = 0; i < used_blocks; ) {
+      switch (block_table[i].size_class) {
+      case FREE_CLASS:
+      case IMMORTAL_CLASS:
+        i++;
+        continue;
+      case LARGE_CLASS:
+        if (!block_table[i].large_size)
+          Bug(NULL, "sweep_code_area should only start at starts of large objects");
+        {
+          LispObj *obj = (LispObj*)block_address(i);
+          if (GENERATION_OF(obj) == generation) {
+            if (!is_object_marked(obj)) {
+              free_block(i);
+              while (++i < used_blocks &&
+                     block_table[i].size_class == LARGE_CLASS &&
+                     !block_table[i].large_size)
+                free_block(i);
+            } else if (raise) {
+              GENERATION_OF(obj)++;
+            }
+          }
+        }
+        break;
+      default:
+        if (block_table[i].generation_filter & GENERATION_FILTER(generation))
+          sweep_small_block(i, generation, raise);
+        i++;
+      }
+    }
   }
   zero_bits(code_mark_ref_bits, previous_dnodes);
-  code_area->active = next_active;
+  if (code_collection_kind == code_gc_compacting)
+    code_area->active = next_active;
   for (unsigned int i; i < ALLOCATION_STATES; i++)
     block_allocator_state[i] = 0;
 }

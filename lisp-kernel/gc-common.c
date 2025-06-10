@@ -1601,7 +1601,8 @@ gc(TCR *tcr, signed_natural param)
   }
 
   install_weak_mark_functions(weak_method);
-  
+
+  unsigned char generation_index = (from == g2_area) ? 2 : (from == g1_area) ? 1 : 0;
   if (GCverbose) {
     char buf[16];
 
@@ -1610,7 +1611,7 @@ gc(TCR *tcr, signed_natural param)
     if (GCephemeral_low) {
       fprintf(dbgout,
               "\n\n;;; Starting Ephemeral GC of generation %d",
-              (from == g2_area) ? 2 : (from == g1_area) ? 1 : 0); 
+              generation_index);
     } else {
       fprintf(dbgout,"\n\n;;; Starting full GC");
     }
@@ -1917,7 +1918,8 @@ gc(TCR *tcr, signed_natural param)
     check_all_areas(tcr);
     check_static_cons_freelist("in post-gc static-cons check");
   }
-  sweep_code_area();
+
+  sweep_code_area(generation_index, to != NULL);
   
   lisp_global(IN_GC) = 0;
   
