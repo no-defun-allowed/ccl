@@ -1977,8 +1977,7 @@ gc(TCR *tcr, signed_natural param)
           fprintf(dbgout,";;; Finished full GC. %s bytes freed in %d.%06d s\n\n", buf, elapsed.tv_sec, elapsed.tv_usec);
         } else {
           fprintf(dbgout,";;; Finished EGC of generation %d. %s bytes freed in %d.%06d s\n\n", 
-                  (from == g2_area) ? 2 : (from == g1_area) ? 1 : 0,
-                  buf, 
+                  generation_index, buf, 
                   elapsed.tv_sec, elapsed.tv_usec);
         }
         report_paging_info_delta(dbgout, &paging_info_start, &paging_info_stop);

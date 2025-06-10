@@ -246,20 +246,19 @@ void mark_code_vector(LispObj obj, Boolean precise) {
     }
     set_bit(code_mark_ref_bits, dnode);
     break;
-  case code_gc_compacting: {
+  case code_gc_compacting:
     /* We get ambiguous roots from stacks and registers which won't exist
-     * after saving the application. */
-    if (!precise)
-      return;
-    /* See rmark and mark_root */
-    natural
-      header = *((natural*)ptr_from_lispobj(untag(obj))),
-      subtag = header_subtag(header),
-      element_count = header_element_count(header),
-      total_size_in_bytes = node_size + element_count,
-      total_size_in_dwords = (total_size_in_bytes+(dnode_size-1))>>dnode_shift;
-    set_n_bits(code_mark_ref_bits, dnode, total_size_in_dwords);
-  }
+     * after saving the application, so we don't /really/ have to handle them. */
+    if (precise) {
+      /* See rmark and mark_root */
+      natural
+        header = *((natural*)ptr_from_lispobj(untag(obj))),
+        subtag = header_subtag(header),
+        element_count = header_element_count(header),
+        total_size_in_bytes = node_size + element_count,
+        total_size_in_dwords = (total_size_in_bytes+(dnode_size-1))>>dnode_shift;
+      set_n_bits(code_mark_ref_bits, dnode, total_size_in_dwords);
+    }
   }
 }
 
@@ -412,15 +411,16 @@ static void sweep_small_block(block_index index, unsigned char generation, Boole
   int stride = 1 << size_class;
   struct free_list *free_list = block_table[index].free_list;
   Boolean any_survived = false;
+  unsigned char target_generation = raise ? generation + 1 : generation;
   
   for (char *addr = block_address(index);
        addr < block_address(index + 1);
        addr += stride) {
     LispObj *o = (LispObj*)addr;
-    if (is_object_live(o) && GENERATION_OF(o) == generation) {
+    if (is_object_live(o) && GENERATION_OF(o) <= generation) {
       if (is_object_marked(o)) {
         any_survived = true;
-        if (raise) GENERATION_OF(o)++;
+        GENERATION_OF(o) = target_generation;
       } else {
         /* Push onto the free list */
         struct free_list *new_node = (struct free_list*)addr;
@@ -432,7 +432,7 @@ static void sweep_small_block(block_index index, unsigned char generation, Boole
   
   block_table[index].free_list = free_list;
   if (raise || !any_survived)
-    block_table[index].generation_filter &= ~GENERATION_FILTER(generation);
+    block_table[index].generation_filter &= ~(GENERATION_FILTER(generation + 1) - 1);
   if (raise && any_survived)
     block_table[index].generation_filter |= GENERATION_FILTER(generation + 1);
   /* If there are no surviving generations on the block, free the block. */
@@ -467,7 +467,7 @@ void sweep_code_area(unsigned char generation, Boolean raise) {
         }
         break;
       default:
-        if (block_table[i].generation_filter & GENERATION_FILTER(generation))
+        //if (block_table[i].generation_filter & GENERATION_FILTER(generation))
           sweep_small_block(i, generation, raise);
         i++;
       }

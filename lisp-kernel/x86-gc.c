@@ -212,16 +212,15 @@ check_readonly_range(LispObj *start, LispObj *end)
           /* XXX bootstrapping */
           if (skip & 0x8000)
             skip = elements - (skip & 0x7fff);
-#else
-          int skip = *(int *)current;
-          fn = (LispObj)(current-1)+fulltag_function;
-#endif
           current += skip;
           elements -= skip;
+#else
+          fn = (LispObj)(current-1)+fulltag_function;
+#endif
         }
         while (elements--) {
           node = *current;
-          if (is_node_fulltag(fulltag_of(node))) {
+          if (is_node_fulltag(fulltag_of(node)) && !in_code_area(node)) {
             a = area_containing((BytePtr)node);
             if (a) {
               code = a->code;
