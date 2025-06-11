@@ -1650,6 +1650,7 @@ gc(TCR *tcr, signed_natural param)
       check_static_cons_freelist("in pre-gc static-cons check");
     }
   }
+  GCDebug = true;
 
   if (from) {
     untenure_from_area(from);

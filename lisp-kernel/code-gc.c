@@ -205,7 +205,7 @@ LispObj allocate_in_code_area(natural bytes) {
   return (LispObj)p | fulltag_misc;
 }
 
-static Boolean is_object_live(LispObj *obj) {
+Boolean is_code_live(LispObj *obj) {
   /* Objects on the free list will have a pointer instead of a u8 header,
    * and this pointer is at least word-aligned, so it will not look like a u8
    * header. */
@@ -226,7 +226,7 @@ static LispObj *refine_pointer(LispObj imprecise) {
     /* The crux of the biscuit: */
     int stride = 1 << block_table[b].size_class;
     LispObj *precise = (LispObj*)(imprecise & ~(stride - 1));
-    return is_object_live(precise) ? precise : NULL;
+    return is_code_live(precise) ? precise : NULL;
   }
   }
 }
@@ -417,7 +417,7 @@ static void sweep_small_block(block_index index, unsigned char generation, Boole
        addr < block_address(index + 1);
        addr += stride) {
     LispObj *o = (LispObj*)addr;
-    if (is_object_live(o) && GENERATION_OF(o) <= generation) {
+    if (is_code_live(o) && GENERATION_OF(o) <= generation) {
       if (is_object_marked(o)) {
         any_survived = true;
         GENERATION_OF(o) = target_generation;

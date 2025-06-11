@@ -50,8 +50,8 @@ imm_word_count(LispObj fn)
 /* Heap sanity checking. */
 
 
-void
-check_node(LispObj n)
+static void
+check_node(LispObj n, Boolean conservative_pcs)
 {
   int tag = fulltag_of(n), header_tag;
   area *a;
@@ -61,7 +61,9 @@ check_node(LispObj n)
     return;
   }
 
-  if (in_code_area(n)) return;
+  if (conservative_pcs && in_code_area(n)) {
+    return;
+  }
   switch (tag) {
   case fulltag_even_fixnum:
   case fulltag_odd_fixnum:
@@ -98,11 +100,6 @@ check_node(LispObj n)
 
 #ifdef X8632
   case fulltag_tra:
-#endif
-#ifdef X8664
-  case fulltag_tra_0:
-  case fulltag_tra_1:
-#endif
     a = heap_area_containing((BytePtr)ptr_from_lispobj(n));
     if (a == NULL) {
       a = active_dynamic_area;
@@ -115,7 +112,6 @@ check_node(LispObj n)
     /* tra points into the heap.  Check displacement, then
        check the function it (should) identify.
     */
-#ifdef X8632
     {
       LispObj fun = 0;
 
@@ -128,10 +124,14 @@ check_node(LispObj n)
       }
       n = fun;
     }
-#endif
     /* Otherwise, fall through and check the header on the function
        that the tra references */
-
+#endif
+#ifdef X8664
+  case fulltag_tra_0:
+  case fulltag_tra_1:
+    return;
+#endif
   case fulltag_misc:
   case fulltag_cons:
 #ifdef X8664
@@ -149,6 +149,10 @@ check_node(LispObj n)
       if ((n > (ptr_to_lispobj(a->active))) &&
           (n < (ptr_to_lispobj(a->high)))) {
         Bug(NULL, "Node points to heap free space: 0x" LISP, n);
+      }
+      if (in_code_area(n)) {
+        if (!is_code_live(ptr_from_lispobj(untag(n))))
+          Bug(NULL, "Node points to dead code: 0x" LISP, n);
       }
       return;
     }
@@ -249,8 +253,8 @@ check_readonly_range(LispObj *start, LispObj *end)
 }
 
 
-void
-check_range(LispObj *start, LispObj *end, Boolean header_allowed)
+static void
+check_range(LispObj *start, LispObj *end, Boolean header_allowed, Boolean pc_allowed)
 {
   LispObj node, *current = start, *prev = NULL;
   int tag;
@@ -260,14 +264,15 @@ check_range(LispObj *start, LispObj *end, Boolean header_allowed)
     prev = current;
     node = *current++;
     tag = fulltag_of(node);
-    if (in_code_area(node)) continue;
     if (immheader_tag_p(tag)) {
       if (! header_allowed) {
+        if (in_code_area(node)) continue;
         Bug(NULL, "Immediate header 0x" LISP " not expected at 0x" LISP "\n", node, prev);
       }
       current = (LispObj *)skip_over_ivector((natural)prev, node);
     } else if (nodeheader_tag_p(tag)) {
       if (! header_allowed) {
+        if (in_code_area(node)) continue;
         Bug(NULL, "Node header 0x" LISP " not expected at 0x" LISP "\n", node, prev);
       }
       elements = header_element_count(node) | 1;
@@ -283,11 +288,11 @@ check_range(LispObj *start, LispObj *end, Boolean header_allowed)
       }
 #endif
       while (elements--) {
-        check_node(*current++);
+        check_node(*current++, pc_allowed);
       }
     } else {
-      check_node(node);
-      check_node(*current++);
+      check_node(node, pc_allowed);
+      check_node(*current++, pc_allowed);
     }
   }
 
@@ -303,19 +308,19 @@ check_xp(ExceptionInformation *xp, natural node_regs_mask)
 {
   natural *regs = (natural *) xpGPRvector(xp);
 
-  if (node_regs_mask & (1<<0)) check_node(regs[REG_EAX]);
-  if (node_regs_mask & (1<<1)) check_node(regs[REG_ECX]);
+  if (node_regs_mask & (1<<0)) check_node(regs[REG_EAX], false);
+  if (node_regs_mask & (1<<1)) check_node(regs[REG_ECX], false);
   if (regs[REG_EFL] & EFL_DF) {
     /* DF set means EDX should be treated as an imm reg */
     ;
   } else
-    if (node_regs_mask & (1<<2)) check_node(regs[REG_EDX]);
+    if (node_regs_mask & (1<<2)) check_node(regs[REG_EDX], false);
 
-  if (node_regs_mask & (1<<3)) check_node(regs[REG_EBX]);
-  if (node_regs_mask & (1<<4)) check_node(regs[REG_ESP]);
-  if (node_regs_mask & (1<<5)) check_node(regs[REG_EBP]);
-  if (node_regs_mask & (1<<6)) check_node(regs[REG_ESI]);
-  if (node_regs_mask & (1<<7)) check_node(regs[REG_EDI]);
+  if (node_regs_mask & (1<<3)) check_node(regs[REG_EBX], false);
+  if (node_regs_mask & (1<<4)) check_node(regs[REG_ESP], false);
+  if (node_regs_mask & (1<<5)) check_node(regs[REG_EBP], false);
+  if (node_regs_mask & (1<<6)) check_node(regs[REG_ESI], false);
+  if (node_regs_mask & (1<<7)) check_node(regs[REG_EDI], false);
 }
 #else
 void
@@ -323,17 +328,17 @@ check_xp(ExceptionInformation *xp)
 {
   natural *regs = (natural *) xpGPRvector(xp);
 
-  check_node(regs[Iarg_z]);
-  check_node(regs[Iarg_y]);
-  check_node(regs[Iarg_x]);
-  check_node(regs[Itemp6]);
-  check_node(regs[Itemp5]);
-  check_node(regs[Itemp4]);
-  check_node(regs[Itemp3]);
-  check_node(regs[Ifn]);
-  check_node(regs[Itemp0]);
-  check_node(regs[Itemp1]);
-  check_node(regs[Itemp2]);
+  check_node(regs[Iarg_z], false);
+  check_node(regs[Iarg_y], false);
+  check_node(regs[Iarg_x], false);
+  check_node(regs[Itemp6], false);
+  check_node(regs[Itemp5], false);
+  check_node(regs[Itemp4], false);
+  check_node(regs[Itemp3], false);
+  check_node(regs[Ifn], false);
+  check_node(regs[Itemp0], false);
+  check_node(regs[Itemp1], false);
+  check_node(regs[Itemp2], true); /* also RA0 */
 }
 #endif
 
@@ -356,11 +361,11 @@ check_tcrs(TCR *first)
 #endif
     }
 #ifdef X8632
-    check_node(tcr->save0);
-    check_node(tcr->save1);
-    check_node(tcr->save2);
-    check_node(tcr->save3);
-    check_node(tcr->next_method_context);
+    check_node(tcr->save0, false);
+    check_node(tcr->save1, false);
+    check_node(tcr->save2, false);
+    check_node(tcr->save3, false);
+    check_node(tcr->next_method_context, false);
 #endif
     for (xframes = (xframe_list *) tcr->xframe; 
          xframes; 
@@ -374,7 +379,7 @@ check_tcrs(TCR *first)
     tlb_start = tcr->tlb_pointer;
     if (tlb_start) {
       tlb_end = tlb_start + ((tcr->tlb_limit)>>fixnumshift);
-      check_range(tlb_start,tlb_end,false);
+      check_range(tlb_start,tlb_end,false,false);
     }
     tcr = TCR_AUX(tcr)->next;
   } while (tcr != first);
@@ -393,7 +398,7 @@ check_all_areas(TCR *tcr)
     case AREA_WATCHED:
     case AREA_STATIC:
     case AREA_MANAGED_STATIC:
-      check_range((LispObj *)a->low, (LispObj *)a->active, true);
+      check_range((LispObj *)a->low, (LispObj *)a->active, true, false);
       break;
 
     case AREA_READONLY:
@@ -406,9 +411,9 @@ check_all_areas(TCR *tcr)
         LispObj* high = (LispObj *)a->high;
         
         if (((natural)low) & node_size) {
-          check_node(*low++);
+          check_node(*low++, true);
         }
-        check_range(low, high, false);
+        check_range(low, high, false, true);
       }
       break;
 
@@ -424,7 +429,7 @@ check_all_areas(TCR *tcr)
              current = next) {
           next = ptr_from_lispobj(*current);
           end = ((next >= start) && (next < limit)) ? next : limit;
-          check_range(current+2, end, true);
+          check_range(current+2, end, true, true);
         }
       }
       break;

@@ -242,6 +242,7 @@ void compact_code_area();
 void sweep_code_area(unsigned char generation, Boolean raise);
 LispObj allocate_in_code_area(natural);
 LispObj code_forwarding_address(LispObj);
+Boolean is_code_live(LispObj*);
 
 #ifdef X8664
 extern Boolean in_code_area(LispObj);
