@@ -8490,7 +8490,7 @@
         (^)))))
 
 ;; XXX: I don't have a good idea of how to pull this off yet.
-(defparameter *x862-generate-casejump* nil)
+(defparameter *x862-generate-casejump* t)
 
 (defun x862-generate-casejump (seg vreg xfer ranges trueforms var otherwise)
   (when (and *x862-generate-casejump* (not *backend-use-linear-scan*))
