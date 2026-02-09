@@ -42,7 +42,7 @@
 
 
 
-typedef u_int32_t opcode, *pc;
+typedef uint32_t opcode, *pc;
 /*
 bad idea
 #define TCR_FLAG_BIT_PC_LUSERED (fixnumshift+9)

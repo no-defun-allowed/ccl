@@ -46,7 +46,7 @@
 #endif
 #endif
 
-#define DEBUG_MEMORY 0
+#define DEBUG_MEMORY 1
 
 void
 allocation_failure(Boolean pointerp, natural size)
@@ -93,10 +93,10 @@ ReserveMemoryForHeap(LogicalAddress want, natural totalsize)
     }
   }
 #else
-  start = mmap((void *)want,
+  start = mmap(NULL,
 	       totalsize + heap_segment_size,
-	       PROT_NONE,
-	       MAP_PRIVATE | MAP_ANON | MAP_NORESERVE,
+	       PROT_READ | PROT_WRITE | PROT_EXEC,
+	       MAP_PRIVATE | MAP_ANON,
 	       -1,
 	       0);
   if (start == MAP_FAILED) {
@@ -104,13 +104,9 @@ ReserveMemoryForHeap(LogicalAddress want, natural totalsize)
   }
 
   if (start != want) {
-    munmap(start, totalsize+heap_segment_size);
+    /* Round up to nearest heap segment */
     start = (void *)((((natural)start)+heap_segment_size-1) & ~(heap_segment_size-1));
-    if(mmap(start, totalsize, PROT_NONE, MAP_PRIVATE | MAP_ANON | MAP_FIXED | MAP_NORESERVE, -1, 0) != start) {
-      return NULL;
-    }
   }
-  mprotect(start, totalsize, PROT_NONE);
 #endif
 #if DEBUG_MEMORY
   fprintf(dbgout, "Reserving heap at 0x" LISP ", size 0x" LISP "\n", start, totalsize);
@@ -144,18 +140,7 @@ CommitMemory (LogicalAddress start, natural len)
   }
   return true;
 #else
-  int i;
-  void *addr;
-
-  for (i = 0; i < 3; i++) {
-    addr = mmap(start, len, MEMPROTECT_RWX, MAP_PRIVATE|MAP_ANON|MAP_FIXED, -1, 0);
-    if (addr == start) {
-      return true;
-    } else {
-      mmap(addr, len, MEMPROTECT_NONE, MAP_PRIVATE|MAP_ANON|MAP_FIXED, -1, 0);
-    }
-  }
-  return false;
+  return true;
 #endif
 }
 
@@ -174,12 +159,6 @@ UnCommitMemory (LogicalAddress start, natural len) {
 #else
   if (len) {
     madvise(start, len, MADV_DONTNEED);
-    if (mmap(start, len, MEMPROTECT_NONE, MAP_PRIVATE|MAP_ANON|MAP_FIXED, -1, 0)
-	!= start) {
-      int err = errno;
-      Fatal("mmap error", "");
-      fprintf(dbgout, "errno = %d", err);
-    }
   }
 #endif
 }
@@ -254,20 +233,7 @@ ProtectMemory(LogicalAddress addr, natural nbytes)
   }
   return status;
 #else
-  int status = mprotect(addr, nbytes, PROT_READ | PROT_EXEC);
-  
-  if (status) {
-    status = errno;
-    
-    if (status == ENOMEM) {
-      void *mapaddr = mmap(addr,nbytes, PROT_READ | PROT_EXEC, MAP_ANON|MAP_PRIVATE|MAP_FIXED,-1,0);
-      if (mapaddr != MAP_FAILED) {
-        return 0;
-      }
-    }
-    Bug(NULL, "couldn't protect " DECIMAL " bytes at " LISP ", errno = %d", nbytes, addr, status);
-  }
-  return status;
+  return 0;
 #endif
 }
 
@@ -288,58 +254,10 @@ UnProtectMemory(LogicalAddress addr, natural nbytes)
 int
 MapFile(LogicalAddress addr, natural pos, natural nbytes, int permissions, int fd) 
 {
-#ifdef WINDOWS
-#if 0
-  /* Lots of hair in here: mostly alignment issues, but also address space reservation */
-  HANDLE hFile, hFileMapping;
-  LPVOID rc;
-  DWORD desiredAccess;
-
-  if (permissions == MEMPROTECT_RWX) {
-    permissions |= PAGE_WRITECOPY;
-    desiredAccess = FILE_MAP_READ|FILE_MAP_WRITE|FILE_MAP_COPY|FILE_MAP_EXECUTE;
-  } else {
-    desiredAccess = FILE_MAP_READ|FILE_MAP_COPY|FILE_MAP_EXECUTE;
-  }
-
-  hFile = _get_osfhandle(fd);
-  hFileMapping = CreateFileMapping(hFile, NULL, permissions,
-				   (nbytes >> 32), (nbytes & 0xffffffff), NULL);
-  
-  if (!hFileMapping) {
-    wperror("CreateFileMapping");
-    return false;
-  }
-
-  rc = MapViewOfFileEx(hFileMapping,
-		       desiredAccess,
-		       (pos >> 32),
-		       (pos & 0xffffffff),
-		       nbytes,
-		       addr);
-#else
-  size_t count, total = 0;
-  size_t opos;
-
-  opos = LSEEK(fd, 0, SEEK_CUR);
-  CommitMemory(addr, nbytes);
-  LSEEK(fd, pos, SEEK_SET);
-
-  while (total < nbytes) {
-    count = read(fd, addr + total, nbytes - total);
-    total += count;
-    // fprintf(dbgout, "read " DECIMAL " bytes, for a total of " DECIMAL " out of " DECIMAL " so far\n", count, total, nbytes);
-    if (!(count > 0))
-      return false;
-  }
-
-  LSEEK(fd, opos, SEEK_SET);
-
-  return true;
+#if DEBUG_MEMORY
+  fprintf(dbgout, "Mapping fd %d to 0x" LISP " size 0x" LISP "\n", fd, addr, nbytes);
 #endif
-#else
   return mmap(addr, nbytes, permissions, MAP_PRIVATE|MAP_FIXED, fd, pos) != MAP_FAILED;
-#endif
 }
 
 void

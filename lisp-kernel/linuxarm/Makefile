@@ -24,10 +24,10 @@ FLOAT_ABI_OPTION =
 VPATH = ../
 RM = /bin/rm
 # compile natively,  on a 32-bit ARM v7 running Linux
-CROSS=
+#CROSS=
 # a plausible cross-compilation prefix, useful on
 # at least an odroid64 running Ubuntu 16.04
-#CROSS=/usr/bin/arm-linux-gnueabihf-
+CROSS=/usr/bin/arm-linux-gnueabihf-
 AS = $(CROSS)as
 CC = $(CROSS)gcc
 M4 = m4
@@ -35,7 +35,7 @@ ASFLAGS = -mfpu=vfp -march=armv7-a $(FLOAT_ABI_OPTION)
 M4FLAGS = -DLINUX -DARM
 CDEFINES = -DLINUX -DARM -D_REENTRANT -D_GNU_SOURCE -DVC_REVISION=$(VC_REVISION)
 CDEBUG = -g
-COPT = -O2
+COPT = -Os
 # Once in a while, -Wformat says something useful.  The odds are against that,
 # however.
 WFORMAT = -Wno-format
