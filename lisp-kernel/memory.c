@@ -163,27 +163,21 @@ UnCommitMemory (LogicalAddress start, natural len) {
 #endif
 }
 
-
 LogicalAddress
-MapMemory(LogicalAddress addr, natural nbytes, int protection)
+MapMemory(natural nbytes, int protection)
 {
   LogicalAddress p;
 #if DEBUG_MEMORY
-  fprintf(dbgout, "Mapping memory at 0x" LISP ", size 0x" LISP "\n", addr, nbytes);
+  fprintf(dbgout, "Mapping memory size 0x" LISP "\n", nbytes);
 #endif
 #ifdef WINDOWS
-  p = VirtualAlloc(addr, nbytes, MEM_RESERVE|MEM_COMMIT, MEMPROTECT_RWX);
+  p = VirtualAlloc(NULL, nbytes, MEM_RESERVE|MEM_COMMIT, MEMPROTECT_RWX);
   if (p == NULL) {
     wperror("MapMemory");
   }
   return p;
 #else
-  {
-    int flags = MAP_PRIVATE|MAP_ANON;
-
-    if (addr > 0) flags |= MAP_FIXED;
-    return mmap(addr, nbytes, protection, flags, -1, 0);
-  }
+  return mmap(NULL, nbytes, protection, MAP_PRIVATE|MAP_ANON, -1, 0);
 #endif
 }
 
@@ -257,7 +251,24 @@ MapFile(LogicalAddress addr, natural pos, natural nbytes, int permissions, int f
 #if DEBUG_MEMORY
   fprintf(dbgout, "Mapping fd %d to 0x" LISP " size 0x" LISP "\n", fd, addr, nbytes);
 #endif
-  return mmap(addr, nbytes, permissions, MAP_PRIVATE|MAP_FIXED, fd, pos) != MAP_FAILED;
+  size_t count, total = 0;
+  size_t opos;
+
+  opos = LSEEK(fd, 0, SEEK_CUR);
+  CommitMemory(addr, nbytes);
+  LSEEK(fd, pos, SEEK_SET);
+
+  while (total < nbytes) {
+    count = read(fd, addr + total, nbytes - total);
+    total += count;
+    // fprintf(dbgout, "read " DECIMAL " bytes, for a total of " DECIMAL " out of " DECIMAL " so far\n", count, total, nbytes);
+    if (!(count > 0))
+      return false;
+  }
+
+  LSEEK(fd, opos, SEEK_SET);
+
+  return true;
 }
 
 void

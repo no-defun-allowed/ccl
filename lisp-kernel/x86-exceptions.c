@@ -3786,7 +3786,7 @@ new_watched_area(natural size)
 {
   char *p;
 
-  p = MapMemory(NULL, size, MEMPROTECT_RWX);
+  p = MapMemory(size, MEMPROTECT_RWX);
   if ((signed_natural)p == -1) {
     allocation_failure(true, size);
   }

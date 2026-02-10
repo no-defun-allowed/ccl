@@ -234,6 +234,13 @@ load_image_section(int fd, openmcl_image_section_header *sect)
     break;
 
   case AREA_STATIC:
+    /* XXX: MAP_FIXED delenda est */
+    mmap(static_space_active,
+         align_to_power_of_2(mem_size,log2_page_size),
+         PROT_READ | PROT_WRITE | PROT_EXEC,
+         MAP_PRIVATE | MAP_ANON | MAP_FIXED,
+         -1,
+         0);
     if (!MapFile(static_space_active,
 		 pos,
 		 align_to_power_of_2(mem_size,log2_page_size),

@@ -62,7 +62,7 @@ void
 UnCommitMemory (LogicalAddress start, natural len);
 
 LogicalAddress
-MapMemory(LogicalAddress addr, natural nbytes, int protection);
+MapMemory(natural nbytes, int protection);
 
 LogicalAddress
 MapMemoryForStack(natural nbytes);
